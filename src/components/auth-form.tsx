@@ -50,9 +50,11 @@ export function AuthForm({ mode }: { mode: Mode }) {
   }
 
   return (
-    <Card className="mx-auto w-full max-w-md">
+    <Card className="mx-auto w-full max-w-md rounded-2xl border-white/10 bg-zinc-900/80 ring-1 ring-white/10">
       <CardHeader>
-        <CardTitle>{mode === "login" ? "Log in" : "Create account"}</CardTitle>
+        <CardTitle className="text-zinc-100">
+          {mode === "login" ? "Sign in" : "Create account"}
+        </CardTitle>
         <CardDescription>
           {mode === "login"
             ? "Username and password only — no OAuth."
@@ -69,6 +71,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
+              className="border-white/10 bg-zinc-950"
             />
           </div>
           <div className="space-y-2">
@@ -82,26 +85,33 @@ export function AuthForm({ mode }: { mode: Mode }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="border-white/10 bg-zinc-950"
             />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? "…" : mode === "login" ? "Log in" : "Register"}
+            {pending ? "…" : mode === "login" ? "Sign in" : "Create account"}
           </Button>
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
           {mode === "login" ? (
             <>
               No account?{" "}
-              <Link href="/register" className="text-sky-400 hover:underline">
-                Register
+              <Link
+                href="/register"
+                className="text-amber-400 hover:text-amber-300"
+              >
+                Create your account
               </Link>
             </>
           ) : (
             <>
               Already registered?{" "}
-              <Link href="/login" className="text-sky-400 hover:underline">
-                Log in
+              <Link
+                href="/login"
+                className="text-amber-400 hover:text-amber-300"
+              >
+                Sign in
               </Link>
             </>
           )}

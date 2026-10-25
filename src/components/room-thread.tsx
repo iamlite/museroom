@@ -9,7 +9,6 @@ import {
   MessageContent,
   MessageResponse,
 } from "@/components/ai-elements/message";
-import { Badge } from "@/components/ui/badge";
 
 export type ThreadMessage = {
   id: string;
@@ -17,26 +16,32 @@ export type ThreadMessage = {
   authorType: "human" | "agent";
   authorLabel: string;
   createdAt: string;
+  relativeTime?: string;
 };
 
 export function RoomThread({ messages }: { messages: ThreadMessage[] }) {
   return (
     <Conversation className="min-h-[50vh]">
-      <ConversationContent className="gap-4 p-0">
+      <ConversationContent className="gap-5 p-0">
         {messages.map((m) => (
           <Message
             key={m.id}
             from={m.authorType === "human" ? "user" : "assistant"}
             className="max-w-full"
           >
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>{m.authorLabel}</span>
-              <span>{new Date(m.createdAt).toLocaleString()}</span>
-              {m.authorType === "agent" && (
-                <Badge className="bg-sky-600/20 text-sky-300 hover:bg-sky-600/20">
-                  AGENT
-                </Badge>
-              )}
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span
+                className={`rounded-md px-2 py-0.5 font-medium ${
+                  m.authorType === "agent"
+                    ? "bg-amber-400/15 text-amber-200"
+                    : "bg-zinc-800 text-zinc-300"
+                }`}
+              >
+                {m.authorLabel}
+              </span>
+              <span className="text-zinc-500">
+                {m.relativeTime ?? new Date(m.createdAt).toLocaleString()}
+              </span>
             </div>
             <MessageContent>
               <MessageResponse>{m.body}</MessageResponse>
