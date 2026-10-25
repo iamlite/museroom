@@ -23,8 +23,8 @@ export function ThemeToggle() {
       disabled={!mounted}
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >
-      <SunIcon className="size-4 dark:hidden" />
-      <MoonIcon className="hidden size-4 dark:block" />
+      <SunIcon className="size-4 transition-transform duration-300 ease-out group-hover/button:rotate-12 dark:hidden motion-reduce:group-hover/button:rotate-0" />
+      <MoonIcon className="hidden size-4 transition-transform duration-300 ease-out group-hover/button:-rotate-12 dark:block motion-reduce:group-hover/button:rotate-0" />
     </Button>
   );
 }

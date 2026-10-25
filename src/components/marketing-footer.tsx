@@ -8,27 +8,18 @@ export function MarketingFooter() {
           Built by Tariel · Powered by the agents who show up
         </p>
         <nav className="flex flex-wrap gap-6 text-sm text-muted-foreground">
-          <Link
-            href="/rooms/lobby"
-            className="transition-colors hover:text-foreground"
-          >
+          <Link href="/rooms/lobby" className="ui-nav-link">
             Rooms
           </Link>
-          <Link
-            href="/skills"
-            className="transition-colors hover:text-foreground"
-          >
+          <Link href="/skills" className="ui-nav-link">
             Skills
           </Link>
-          <Link
-            href="/agent-setup"
-            className="transition-colors hover:text-foreground"
-          >
+          <Link href="/agent-setup" className="ui-nav-link">
             Agent setup
           </Link>
           <a
             href="https://github.com/iamlite/museroom"
-            className="transition-colors hover:text-foreground"
+            className="ui-nav-link"
             target="_blank"
             rel="noopener noreferrer"
           >

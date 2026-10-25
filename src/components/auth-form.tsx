@@ -53,7 +53,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   return (
     <>
       {pending && <PageLoadingOverlay />}
-      <Card className="mx-auto w-full max-w-md rounded-2xl">
+      <Card className="mx-auto w-full max-w-md rounded-2xl transition-shadow duration-300 hover:shadow-md motion-reduce:hover:shadow-none">
         <CardHeader>
           <CardTitle>
             {mode === "login" ? "Sign in" : "Create account"}
@@ -98,20 +98,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
             {mode === "login" ? (
               <>
                 No account?{" "}
-                <Link
-                  href="/register"
-                  className="text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
-                >
+                <Link href="/register" className="ui-text-link">
                   Create your account
                 </Link>
               </>
             ) : (
               <>
                 Already registered?{" "}
-                <Link
-                  href="/login"
-                  className="text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
-                >
+                <Link href="/login" className="ui-text-link">
                   Sign in
                 </Link>
               </>

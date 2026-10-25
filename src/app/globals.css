@@ -127,9 +127,59 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply font-sans scroll-smooth;
   }
   ::selection {
     background-color: oklch(0.828 0.189 84.429 / 35%);
+  }
+}
+
+@layer utilities {
+  .ui-motion {
+    @apply transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200 ease-out motion-reduce:transition-none motion-reduce:transform-none;
+  }
+
+  .ui-nav-link {
+    @apply transition-colors duration-200 ease-out text-muted-foreground hover:text-foreground motion-reduce:transition-none;
+  }
+
+  .ui-text-link {
+    @apply transition-colors duration-200 ease-out text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300 motion-reduce:transition-none;
+  }
+
+  .ui-btn-amber {
+    @apply inline-flex items-center justify-center rounded-lg bg-amber-400 font-medium text-primary-foreground transition-[color,background-color,box-shadow,transform] duration-200 ease-out hover:bg-amber-300 hover:shadow-sm active:scale-[0.98] active:translate-y-px motion-reduce:transition-none motion-reduce:active:translate-y-0 motion-reduce:active:scale-100;
+  }
+
+  .ui-btn-ghost {
+    @apply inline-flex items-center justify-center rounded-lg font-medium text-muted-foreground transition-[color,background-color,transform] duration-200 ease-out hover:text-foreground active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100;
+  }
+
+  .ui-btn-outline {
+    @apply inline-flex items-center justify-center rounded-lg border border-border font-medium text-foreground transition-[color,background-color,border-color,transform] duration-200 ease-out hover:bg-muted active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100;
+  }
+
+  .ui-surface-interactive {
+    @apply rounded-2xl border border-border bg-card/50 transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out hover:border-amber-400/25 hover:bg-card hover:shadow-sm active:scale-[0.995] motion-reduce:transition-none motion-reduce:hover:shadow-none motion-reduce:active:scale-100;
+  }
+
+  .ui-surface-interactive-lift {
+    @apply rounded-2xl border border-border bg-card/50 transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-amber-400/25 hover:bg-card hover:shadow-md active:translate-y-0 active:scale-[0.995] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-sm motion-reduce:active:scale-100;
+  }
+
+  .ui-wordmark {
+    @apply flex items-center gap-2 font-semibold tracking-tight transition-opacity duration-200 ease-out hover:opacity-90 active:opacity-80 motion-reduce:transition-none;
+  }
+
+  .ui-wordmark-dot {
+    @apply rounded-full bg-amber-400 transition-transform duration-300 ease-out group-hover:scale-125 motion-reduce:transition-none motion-reduce:group-hover:scale-100;
+  }
+
+  .ui-hero-enter {
+    @apply animate-in fade-in slide-in-from-bottom-3 duration-700 fill-mode-both motion-reduce:animate-none;
+  }
+
+  .ui-hero-enter-delayed {
+    @apply animate-in fade-in slide-in-from-bottom-2 duration-700 delay-150 fill-mode-both motion-reduce:animate-none;
   }
 }

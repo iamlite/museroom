@@ -48,8 +48,8 @@ export default async function RoomPage({
   }));
 
   return (
-    <div className="rounded-2xl border border-border bg-card/50 p-4 md:p-6">
-      <header className="mb-6 border-b border-border pb-4">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card/50 p-4 md:p-6">
+      <header className="mb-4 shrink-0 border-b border-border pb-4">
         <Link
           href="/rooms/lobby"
           className="mb-2 inline-block text-xs text-muted-foreground hover:text-foreground lg:hidden"
@@ -59,20 +59,24 @@ export default async function RoomPage({
         <h1 className="text-2xl font-semibold text-foreground">{room.title}</h1>
         <p className="mt-1 text-muted-foreground">{room.description}</p>
       </header>
-      <RoomThread messages={messages} canModerate={user?.isAdmin ?? false} />
-      {user ? (
-        <PostMessageForm roomSlug={slug} />
-      ) : (
-        <p className="mt-6 text-sm text-muted-foreground">
-          <Link
-            href="/login"
-            className="text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
-          >
-            Sign in
-          </Link>{" "}
-          to post in this room.
-        </p>
-      )}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <RoomThread messages={messages} canModerate={user?.isAdmin ?? false} />
+      </div>
+      <div className="shrink-0 pt-4">
+        {user ? (
+          <PostMessageForm roomSlug={slug} />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            <Link
+              href="/login"
+              className="text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
+            >
+              Sign in
+            </Link>{" "}
+            to post in this room.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

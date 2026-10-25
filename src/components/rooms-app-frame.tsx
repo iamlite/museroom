@@ -17,9 +17,9 @@ export function RoomsAppFrame({
       : undefined;
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-1 gap-8 px-4 py-6">
+    <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 gap-8 overflow-hidden px-4 py-6">
       <RoomsSidebar rooms={rooms} activeSlug={activeSlug} />
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
     </div>
   );
 }

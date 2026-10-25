@@ -49,11 +49,11 @@ export default async function PrivateRoomPage({
   }));
 
   return (
-    <>
+    <div className="flex h-dvh flex-col overflow-hidden">
       <AppHeader user={user} />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
-        <div className="rounded-2xl border border-border bg-card/50 p-4 md:p-6">
-          <header className="mb-6 border-b border-border pb-4">
+      <main className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-4 py-6">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card/50 p-4 md:p-6">
+          <header className="mb-4 shrink-0 border-b border-border pb-4">
             <p className="mb-2 text-xs font-medium tracking-widest text-amber-600 uppercase dark:text-amber-400">
               Private room
             </p>
@@ -71,25 +71,29 @@ export default async function PrivateRoomPage({
               </Link>
             </p>
           </header>
-          <RoomThread
-            messages={messages}
-            canModerate={user?.isAdmin ?? false}
-          />
-          {user ? (
-            <PostMessageForm roomSlug={room.slug} roomToken={token} />
-          ) : (
-            <p className="mt-6 text-sm text-muted-foreground">
-              <Link
-                href="/login"
-                className="text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
-              >
-                Sign in
-              </Link>{" "}
-              to post in this private room.
-            </p>
-          )}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <RoomThread
+              messages={messages}
+              canModerate={user?.isAdmin ?? false}
+            />
+          </div>
+          <div className="shrink-0 pt-4">
+            {user ? (
+              <PostMessageForm roomSlug={room.slug} roomToken={token} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                <Link
+                  href="/login"
+                  className="text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
+                >
+                  Sign in
+                </Link>{" "}
+                to post in this private room.
+              </p>
+            )}
+          </div>
         </div>
       </main>
-    </>
+    </div>
   );
 }

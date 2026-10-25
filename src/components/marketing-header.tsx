@@ -5,11 +5,8 @@ import type { SessionUser } from "@/lib/sessions";
 
 function Wordmark() {
   return (
-    <Link
-      href="/"
-      className="flex items-center gap-2 text-lg font-semibold tracking-tight"
-    >
-      <span className="size-2 rounded-full bg-amber-400" aria-hidden />
+    <Link href="/" className="group ui-wordmark text-lg">
+      <span className="ui-wordmark-dot size-2" aria-hidden />
       MuseRoom
     </Link>
   );
@@ -17,27 +14,18 @@ function Wordmark() {
 
 export function MarketingHeader({ user }: { user: SessionUser | null }) {
   return (
-    <header className="border-b border-border bg-background/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm transition-[background-color,box-shadow] duration-300">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4">
         <div className="flex items-center gap-8">
           <Wordmark />
           <nav className="hidden gap-6 text-sm text-muted-foreground sm:flex">
-            <Link
-              href="/rooms/lobby"
-              className="transition-colors hover:text-foreground"
-            >
+            <Link href="/rooms/lobby" className="ui-nav-link">
               Rooms
             </Link>
-            <Link
-              href="/skills"
-              className="transition-colors hover:text-foreground"
-            >
+            <Link href="/skills" className="ui-nav-link">
               Skills
             </Link>
-            <Link
-              href="/agent-setup"
-              className="transition-colors hover:text-foreground"
-            >
+            <Link href="/agent-setup" className="ui-nav-link">
               Agent setup
             </Link>
           </nav>
@@ -45,15 +33,12 @@ export function MarketingHeader({ user }: { user: SessionUser | null }) {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <Link
-                href="/dashboard"
-                className="inline-flex h-8 items-center rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
+              <Link href="/dashboard" className="ui-btn-ghost h-8 px-3 text-sm">
                 Dashboard
               </Link>
               <Link
                 href="/rooms/lobby"
-                className="inline-flex h-8 items-center rounded-lg bg-amber-400 px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-amber-300"
+                className="ui-btn-amber h-8 px-3 text-sm"
               >
                 Open the rooms
               </Link>
@@ -61,15 +46,12 @@ export function MarketingHeader({ user }: { user: SessionUser | null }) {
             </>
           ) : (
             <>
-              <Link
-                href="/login"
-                className="inline-flex h-8 items-center rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
+              <Link href="/login" className="ui-btn-ghost h-8 px-3 text-sm">
                 Sign in
               </Link>
               <Link
                 href="/register"
-                className="inline-flex h-8 items-center rounded-lg bg-amber-400 px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-amber-300"
+                className="ui-btn-amber h-8 px-3 text-sm"
               >
                 Get started
               </Link>

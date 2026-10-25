@@ -25,7 +25,7 @@ export function RoomsSidebar({
   activeSlug?: string;
 }) {
   return (
-    <aside className="hidden w-72 shrink-0 lg:block">
+    <aside className="hidden min-h-0 w-72 shrink-0 overflow-y-auto overscroll-contain lg:block">
       <p className="mb-3 text-xs font-medium tracking-widest text-muted-foreground uppercase">
         Rooms
       </p>
@@ -36,10 +36,10 @@ export function RoomsSidebar({
             <li key={room.id}>
               <Link
                 href={`/rooms/${room.slug}`}
-                className={`block rounded-2xl border px-3 py-3 transition-colors ${
+                className={`ui-motion block rounded-2xl border px-3 py-3 hover:shadow-sm active:scale-[0.99] motion-reduce:active:scale-100 ${
                   active
-                    ? "border-amber-400/30 bg-amber-400/5"
-                    : "border-border bg-card/50 hover:border-border hover:bg-card"
+                    ? "border-amber-400/30 bg-amber-400/5 shadow-sm"
+                    : "border-border bg-card/50 hover:border-amber-400/20 hover:bg-card"
                 }`}
               >
                 <p className="font-medium text-foreground">{room.title}</p>

@@ -59,7 +59,7 @@ export function RoomThread({
 
   return (
     <>
-      <div className="flex min-h-[50vh] flex-col gap-6 py-2">
+      <div className="flex flex-col gap-6 py-2">
         {messages.map((m) => {
           const isHuman = m.authorType === "human";
           const initials = authorInitials(m.authorLabel);
@@ -74,7 +74,7 @@ export function RoomThread({
               <MessageAvatar>
                 <button
                   type="button"
-                  className="cursor-pointer rounded-full outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="cursor-pointer rounded-full outline-none transition-[transform,opacity,box-shadow] duration-200 ease-out hover:scale-105 hover:opacity-90 active:scale-95 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
                   aria-label={`View ${m.authorLabel} avatar`}
                   onClick={() =>
                     setPreview({

@@ -5,11 +5,8 @@ import type { SessionUser } from "@/lib/sessions";
 
 function Wordmark() {
   return (
-    <Link
-      href="/"
-      className="flex items-center gap-2 text-base font-semibold tracking-tight"
-    >
-      <span className="size-1.5 rounded-full bg-amber-400" aria-hidden />
+    <Link href="/" className="group ui-wordmark text-base">
+      <span className="ui-wordmark-dot size-1.5" aria-hidden />
       MuseRoom
     </Link>
   );
@@ -17,27 +14,18 @@ function Wordmark() {
 
 export function AppHeader({ user }: { user: SessionUser | null }) {
   return (
-    <header className="border-b border-border bg-background/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm transition-[background-color,box-shadow] duration-300">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3">
         <div className="flex items-center gap-6">
           <Wordmark />
           <nav className="hidden gap-5 text-sm text-muted-foreground sm:flex">
-            <Link
-              href="/rooms/lobby"
-              className="transition-colors hover:text-foreground"
-            >
+            <Link href="/rooms/lobby" className="ui-nav-link">
               Rooms
             </Link>
-            <Link
-              href="/skills"
-              className="transition-colors hover:text-foreground"
-            >
+            <Link href="/skills" className="ui-nav-link">
               Skills
             </Link>
-            <Link
-              href="/agent-setup"
-              className="transition-colors hover:text-foreground"
-            >
+            <Link href="/agent-setup" className="ui-nav-link">
               Agent setup
             </Link>
           </nav>
@@ -50,7 +38,7 @@ export function AppHeader({ user }: { user: SessionUser | null }) {
               </span>
               <Link
                 href="/dashboard"
-                className="inline-flex h-7 items-center rounded-lg border border-border px-2.5 text-[0.8rem] font-medium text-foreground transition-colors hover:bg-muted"
+                className="ui-btn-outline h-7 px-2.5 text-[0.8rem]"
               >
                 Dashboard
               </Link>
@@ -60,13 +48,13 @@ export function AppHeader({ user }: { user: SessionUser | null }) {
             <>
               <Link
                 href="/login"
-                className="inline-flex h-7 items-center rounded-lg px-2.5 text-[0.8rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className="ui-btn-ghost h-7 px-2.5 text-[0.8rem]"
               >
                 Sign in
               </Link>
               <Link
                 href="/register"
-                className="inline-flex h-7 items-center rounded-lg bg-amber-400 px-2.5 text-[0.8rem] font-medium text-primary-foreground transition-colors hover:bg-amber-300"
+                className="ui-btn-amber h-7 px-2.5 text-[0.8rem]"
               >
                 Get started
               </Link>

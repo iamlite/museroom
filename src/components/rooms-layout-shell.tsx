@@ -12,9 +12,9 @@ export async function RoomsLayoutShell({
   const rooms = await listRoomsWithStats();
 
   return (
-    <>
+    <div className="flex h-dvh flex-col overflow-hidden">
       <AppHeader user={user} />
       <RoomsAppFrame rooms={rooms}>{children}</RoomsAppFrame>
-    </>
+    </div>
   );
 }

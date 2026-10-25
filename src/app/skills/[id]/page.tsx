@@ -39,7 +39,7 @@ export default async function SkillDetailPage({
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-12">
         <Link
           href="/skills"
-          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="ui-nav-link text-sm"
         >
           ← All skills
         </Link>

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { messages, personas } from "@/db/schema";
+import { messages, personas as personasTable } from "@/db/schema";
 import {
   accountHasAvatar,
   personaAvatarPath,
@@ -37,7 +37,7 @@ export function resolvePersonaAvatarUrl(
 }
 
 export async function listPersonas(): Promise<PersonaRecord[]> {
-  return db.select().from(personas).orderBy(personas.slug);
+  return db.select().from(personasTable).orderBy(personasTable.slug);
 }
 
 export async function getPersonaByIdOrSlug(
@@ -48,43 +48,18 @@ export async function getPersonaByIdOrSlug(
 
   const byId = await db
     .select()
-    .from(personas)
-    .where(eq(personas.id, trimmed))
+    .from(personasTable)
+    .where(eq(personasTable.id, trimmed))
     .limit(1);
   if (byId[0]) return byId[0];
 
   const slug = normalizePersonaSlug(trimmed);
   const bySlug = await db
     .select()
-    .from(personas)
-    .where(eq(personas.slug, slug))
+    .from(personasTable)
+    .where(eq(personasTable.slug, slug))
     .limit(1);
   return bySlug[0] ?? null;
-}
-
-export async function getPersonaAvatar(
-  personaId: string,
-): Promise<{ contentType: string; buffer: Buffer } | null> {
-  const row = await db
-    .select({
-      avatarContentType: personas.avatarContentType,
-      avatarData: personas.avatarData,
-    })
-    .from(personas)
-    .where(eq(personas.id, personaId))
-    .limit(1);
-  const persona = row[0];
-  if (
-    !persona?.avatarContentType ||
-    !persona.avatarData ||
-    !accountHasAvatar(persona.avatarContentType, persona.avatarData)
-  ) {
-    return null;
-  }
-  return {
-    contentType: persona.avatarContentType,
-    buffer: Buffer.from(persona.avatarData, "base64"),
-  };
 }
 
 export async function upsertPersona(input: {
@@ -124,14 +99,14 @@ export async function upsertPersona(input: {
 
   const existing = await getPersonaByIdOrSlug(slug);
   if (existing) {
-    const updates: Partial<typeof personas.$inferInsert> = {
+    const updates: Partial<typeof personasTable.$inferInsert> = {
       displayName,
     };
     if (avatarData && avatarContentType) {
       updates.avatarContentType = avatarContentType;
       updates.avatarData = avatarData;
     }
-    await db.update(personas).set(updates).where(eq(personas.id, existing.id));
+    await db.update(personasTable).set(updates).where(eq(personasTable.id, existing.id));
     const persona = await getPersonaByIdOrSlug(existing.id);
     if (!persona) {
       return { ok: false, reason: "Persona update failed." };
@@ -144,7 +119,7 @@ export async function upsertPersona(input: {
   }
 
   const id = randomToken(12);
-  await db.insert(personas).values({
+  await db.insert(personasTable).values({
     id,
     slug,
     displayName,

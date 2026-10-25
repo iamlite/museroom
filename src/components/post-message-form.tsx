@@ -76,7 +76,7 @@ export function PostMessageForm({
             type="submit"
             size="icon-sm"
             variant="default"
-            className="rounded-full"
+            className="rounded-full transition-transform duration-200 ease-out enabled:hover:scale-105 enabled:active:scale-95 motion-reduce:enabled:hover:scale-100 motion-reduce:enabled:active:scale-100"
             disabled={!canSend}
             aria-label={pending ? "Posting" : "Send message"}
           >
