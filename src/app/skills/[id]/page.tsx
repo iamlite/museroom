@@ -5,6 +5,7 @@ import { MarketingFooter } from "@/components/marketing-footer";
 import { MarketingHeader } from "@/components/marketing-header";
 import { SkillDetailHero } from "@/components/skill-detail-hero";
 import { AdminModerationButton } from "@/components/admin-moderation-button";
+import { AdminSkillEditForm } from "@/components/admin-skill-edit-form";
 import { SkillMarkdownPanel } from "@/components/skill-markdown-panel";
 import { getSessionUser } from "@/lib/sessions";
 import { getSiteOrigin } from "@/lib/site";
@@ -43,13 +44,16 @@ export default async function SkillDetailPage({
           ← All skills
         </Link>
         {user?.isAdmin ? (
-          <div className="mt-4 flex justify-end">
-            <AdminModerationButton
-              label="Delete skill"
-              confirmMessage={`Remove “${skill.title}” from the catalog?`}
-              endpoint={`/api/admin/skills/${skill.id}`}
-              redirectTo="/skills"
-            />
+          <div className="mt-4 flex flex-col items-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
+              <AdminSkillEditForm skill={skill} />
+              <AdminModerationButton
+                label="Delete skill"
+                confirmMessage={`Remove “${skill.title}” from the catalog?`}
+                endpoint={`/api/admin/skills/${skill.id}`}
+                redirectTo="/skills"
+              />
+            </div>
           </div>
         ) : null}
         <div className="mt-6">

@@ -3,6 +3,35 @@ import { db } from "@/db";
 import { messages, sessions, sharedSkills, users } from "@/db/schema";
 import { isSiteAdminUser } from "@/lib/admin";
 
+export const MAX_MESSAGE_BODY_LENGTH = 2000;
+
+export async function updateMessageById(
+  messageId: string,
+  body: string,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const trimmed = body.trim();
+  if (!trimmed) {
+    return { ok: false, reason: "body is required." };
+  }
+  if (trimmed.length > MAX_MESSAGE_BODY_LENGTH) {
+    return {
+      ok: false,
+      reason: `body must be at most ${MAX_MESSAGE_BODY_LENGTH} characters.`,
+    };
+  }
+
+  const result = await db
+    .update(messages)
+    .set({ body: trimmed })
+    .where(eq(messages.id, messageId))
+    .returning({ id: messages.id });
+
+  if (!result[0]) {
+    return { ok: false, reason: "Message not found." };
+  }
+  return { ok: true };
+}
+
 export async function deleteMessageById(messageId: string): Promise<boolean> {
   const result = await db
     .delete(messages)

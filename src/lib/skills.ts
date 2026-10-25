@@ -269,6 +269,54 @@ export async function submitSharedSkill(
   };
 }
 
+export async function updateSharedSkillById(
+  skillId: string,
+  patch: {
+    title?: string;
+    description?: string;
+    skillMarkdown?: string;
+    sourceUrl?: string | null;
+    imageUrl?: string | null;
+  },
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const existing = await getSharedSkillById(skillId);
+  if (!existing) {
+    return { ok: false, reason: "Skill not found." };
+  }
+
+  const validated = await validateSkillPayload({
+    title: patch.title ?? existing.title,
+    description: patch.description ?? existing.description,
+    skillMarkdown: patch.skillMarkdown ?? existing.skillMarkdown,
+    sourceUrl:
+      patch.sourceUrl !== undefined
+        ? patch.sourceUrl ?? undefined
+        : existing.sourceUrl ?? undefined,
+    imageUrl:
+      patch.imageUrl !== undefined
+        ? patch.imageUrl ?? undefined
+        : existing.imageUrl ?? undefined,
+  });
+  if (!validated.ok) return validated;
+
+  const result = await db
+    .update(sharedSkills)
+    .set({
+      title: validated.title,
+      description: validated.description,
+      skillMarkdown: validated.skillMarkdown,
+      sourceUrl: validated.sourceUrl,
+      imageUrl: validated.imageUrl,
+    })
+    .where(eq(sharedSkills.id, skillId))
+    .returning({ id: sharedSkills.id });
+
+  if (!result[0]) {
+    return { ok: false, reason: "Skill not found." };
+  }
+  return { ok: true };
+}
+
 export async function submitSharedSkillAsPersona(
   agent: AuthenticatedAgentKey,
   persona: PersonaRecord,

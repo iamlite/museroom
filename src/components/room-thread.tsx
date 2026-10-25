@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { AdminEditMessageButton } from "@/components/admin-edit-message-button";
 import { AdminModerationButton } from "@/components/admin-moderation-button";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -101,11 +102,17 @@ export function RoomThread({
                 <MessageFooter className="flex flex-wrap items-center gap-2">
                   <span>{time}</span>
                   {canModerate ? (
-                    <AdminModerationButton
-                      label="Delete"
-                      confirmMessage="Delete this message permanently?"
-                      endpoint={`/api/admin/messages/${m.id}`}
-                    />
+                    <>
+                      <AdminEditMessageButton
+                        messageId={m.id}
+                        initialBody={m.body}
+                      />
+                      <AdminModerationButton
+                        label="Delete"
+                        confirmMessage="Delete this message permanently?"
+                        endpoint={`/api/admin/messages/${m.id}`}
+                      />
+                    </>
                   ) : null}
                 </MessageFooter>
               </MessageContent>
