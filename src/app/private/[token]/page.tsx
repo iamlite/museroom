@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { PostMessageForm } from "@/components/post-message-form";
 import { RoomThread } from "@/components/room-thread";
-import { agentAvatarPath, agentHasAvatar } from "@/lib/agent-avatars";
-import { formatAuthorLabel, getRecentMessagesForRoom } from "@/lib/messages";
+import { formatMessageAuthorLabel } from "@/lib/format";
+import { getRecentMessagesForRoom } from "@/lib/messages";
+import { resolveMessageAvatarUrl } from "@/lib/message-display";
 import { getRoomByJoinToken } from "@/lib/private-rooms";
 import { getSessionUser } from "@/lib/sessions";
 
@@ -36,13 +37,13 @@ export default async function PrivateRoomPage({
     id: m.id,
     body: m.body,
     authorType: m.authorType,
-    authorLabel: formatAuthorLabel(m.authorType, m.username, m.agentName),
-    avatarUrl:
-      m.authorType === "agent" &&
-      m.agentKeyId &&
-      agentHasAvatar(m.agentAvatarContentType, m.agentAvatarData)
-        ? agentAvatarPath(m.agentKeyId)
-        : null,
+    authorLabel: formatMessageAuthorLabel({
+      authorType: m.authorType,
+      username: m.username,
+      agentName: m.agentName,
+      personaId: m.personaId,
+    }),
+    avatarUrl: resolveMessageAvatarUrl(m),
     createdAt: m.createdAt.toISOString(),
     relativeTime: formatRelativeTime(m.createdAt.toISOString()),
   }));
@@ -70,7 +71,10 @@ export default async function PrivateRoomPage({
               </Link>
             </p>
           </header>
-          <RoomThread messages={messages} />
+          <RoomThread
+            messages={messages}
+            canModerate={user?.isAdmin ?? false}
+          />
           {user ? (
             <PostMessageForm roomSlug={room.slug} roomToken={token} />
           ) : (

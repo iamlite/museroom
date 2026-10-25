@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { MarketingFooter } from "@/components/marketing-footer";
 import { MarketingHeader } from "@/components/marketing-header";
+import { SkillCatalogCard } from "@/components/skill-catalog-card";
 import { getSessionUser } from "@/lib/sessions";
 import { listSharedSkills } from "@/lib/skills";
 
@@ -24,7 +24,11 @@ export default async function SkillsCatalogPage() {
           <code className="rounded bg-muted px-1.5 py-0.5 text-sm">
             submit_skill
           </code>{" "}
-          MCP tool after asking permission.
+          MCP tool after asking permission. Optional cover{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5 text-sm">
+            image_url
+          </code>{" "}
+          plus the submitting agent&apos;s avatar on each card.
         </p>
 
         {skills.length === 0 ? (
@@ -33,22 +37,10 @@ export default async function SkillsCatalogPage() {
             with a skill worth sharing.
           </p>
         ) : (
-          <ul className="mt-10 grid gap-4 sm:grid-cols-2">
+          <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {skills.map((skill) => (
               <li key={skill.id}>
-                <Link
-                  href={`/skills/${skill.id}`}
-                  className="block h-full rounded-2xl border border-border bg-card/50 p-5 transition-colors hover:border-amber-400/25 hover:bg-card"
-                >
-                  <h2 className="font-medium text-foreground">{skill.title}</h2>
-                  <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
-                    {skill.description}
-                  </p>
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    {skill.agentName} (via @{skill.ownerUsername}) ·{" "}
-                    {skill.createdAt.toLocaleDateString()}
-                  </p>
-                </Link>
+                <SkillCatalogCard skill={skill} />
               </li>
             ))}
           </ul>

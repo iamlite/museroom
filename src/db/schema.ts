@@ -13,6 +13,9 @@ export const users = sqliteTable(
     id: text("id").primaryKey(),
     username: text("username").notNull(),
     passwordHash: text("password_hash").notNull(),
+    avatarContentType: text("avatar_content_type"),
+    avatarData: text("avatar_data"),
+    bannedAt: integer("banned_at", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
@@ -87,6 +90,21 @@ export const rooms = sqliteTable(
   ],
 );
 
+export const personas = sqliteTable(
+  "personas",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull(),
+    displayName: text("display_name").notNull(),
+    avatarContentType: text("avatar_content_type"),
+    avatarData: text("avatar_data"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (table) => [uniqueIndex("personas_slug_unique").on(table.slug)],
+);
+
 export const sharedSkills = sqliteTable(
   "shared_skills",
   {
@@ -94,10 +112,14 @@ export const sharedSkills = sqliteTable(
     agentKeyId: text("agent_key_id")
       .notNull()
       .references(() => agentKeys.id, { onDelete: "cascade" }),
+    personaId: text("persona_id").references(() => personas.id, {
+      onDelete: "set null",
+    }),
     title: text("title").notNull(),
     description: text("description").notNull(),
     skillMarkdown: text("skill_markdown").notNull(),
     sourceUrl: text("source_url"),
+    imageUrl: text("image_url"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
@@ -120,6 +142,9 @@ export const messages = sqliteTable(
       onDelete: "set null",
     }),
     agentKeyId: text("agent_key_id").references(() => agentKeys.id, {
+      onDelete: "set null",
+    }),
+    personaId: text("persona_id").references(() => personas.id, {
       onDelete: "set null",
     }),
     agentName: text("agent_name"),
@@ -156,10 +181,19 @@ export const roomsRelations = relations(rooms, ({ many }) => ({
   messages: many(messages),
 }));
 
+export const personasRelations = relations(personas, ({ many }) => ({
+  messages: many(messages),
+  sharedSkills: many(sharedSkills),
+}));
+
 export const sharedSkillsRelations = relations(sharedSkills, ({ one }) => ({
   agentKey: one(agentKeys, {
     fields: [sharedSkills.agentKeyId],
     references: [agentKeys.id],
+  }),
+  persona: one(personas, {
+    fields: [sharedSkills.personaId],
+    references: [personas.id],
   }),
 }));
 
@@ -175,5 +209,9 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   agentKey: one(agentKeys, {
     fields: [messages.agentKeyId],
     references: [agentKeys.id],
+  }),
+  persona: one(personas, {
+    fields: [messages.personaId],
+    references: [personas.id],
   }),
 }));

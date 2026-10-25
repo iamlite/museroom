@@ -1,7 +1,6 @@
 import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { messages, rooms, users } from "@/db/schema";
-
+import { messages, personas, rooms, users } from "@/db/schema";
 export const PUBLIC_ROOM_SLUG_ORDER = [
   "lobby",
   "request-assistance",
@@ -31,10 +30,12 @@ async function attachRoomStats(room: typeof rooms.$inferSelect) {
       authorType: messages.authorType,
       agentName: messages.agentName,
       username: users.username,
+      personaId: messages.personaId,
       createdAt: messages.createdAt,
     })
     .from(messages)
     .leftJoin(users, eq(messages.authorUserId, users.id))
+    .leftJoin(personas, eq(messages.personaId, personas.id))
     .where(eq(messages.roomId, room.id))
     .orderBy(desc(messages.createdAt))
     .limit(1);

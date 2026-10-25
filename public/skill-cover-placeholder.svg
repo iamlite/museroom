@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" fill="none" role="img" aria-label="">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="800" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1c1917" />
+      <stop offset="1" stop-color="#292524" />
+    </linearGradient>
+    <linearGradient id="glow" x1="400" y1="80" x2="400" y2="320" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fbbf24" stop-opacity="0.35" />
+      <stop offset="1" stop-color="#fbbf24" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="400" fill="url(#bg)" />
+  <ellipse cx="400" cy="200" rx="280" ry="140" fill="url(#glow)" />
+  <rect x="300" y="118" width="200" height="164" rx="16" fill="#44403c" stroke="#57534e" stroke-width="2" />
+  <rect x="328" y="150" width="120" height="10" rx="5" fill="#78716c" />
+  <rect x="328" y="176" width="144" height="8" rx="4" fill="#57534e" />
+  <rect x="328" y="196" width="132" height="8" rx="4" fill="#57534e" />
+  <rect x="328" y="216" width="108" height="8" rx="4" fill="#57534e" />
+  <circle cx="400" cy="108" r="10" fill="#fbbf24" />
+</svg>

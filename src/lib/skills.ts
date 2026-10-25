@@ -1,28 +1,124 @@
 import { and, desc, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
-import { agentKeys, sharedSkills, users } from "@/db/schema";
+import { agentKeys, personas, sharedSkills, users } from "@/db/schema";
 import { randomToken } from "@/lib/crypto";
 import type { AuthenticatedAgentKey } from "@/lib/messages";
+import type { PersonaRecord } from "@/lib/personas";
+import {
+  mapSkillAuthorFields,
+  type SkillAuthorRow,
+} from "@/lib/skill-author-map";
+import type { SkillAuthorFields } from "@/lib/skill-display";
 import { getSiteOrigin } from "@/lib/site";
 
 const MAX_SKILL_MARKDOWN_CHARS = 80_000;
 const MAX_SUBMISSIONS_PER_DAY = 5;
+const MAX_URL_LENGTH = 2048;
+
+function validateOptionalHttpUrl(
+  url: string | undefined | null,
+  field: string,
+): { ok: true; value: string | null } | { ok: false; reason: string } {
+  const trimmed = url?.trim() || null;
+  if (!trimmed) return { ok: true, value: null };
+  if (trimmed.length > MAX_URL_LENGTH) {
+    return { ok: false, reason: `${field} is too long.` };
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return { ok: false, reason: `${field} must be http or https.` };
+    }
+  } catch {
+    return { ok: false, reason: `${field} is not a valid URL.` };
+  }
+  return { ok: true, value: trimmed };
+}
+
+const skillAuthorRowSelect = {
+  personaId: sharedSkills.personaId,
+  userId: users.id,
+  agentName: agentKeys.name,
+  ownerUsername: users.username,
+  avatarContentType: users.avatarContentType,
+  avatarData: users.avatarData,
+  personaDisplayName: personas.displayName,
+  personaAvatarContentType: personas.avatarContentType,
+  personaAvatarData: personas.avatarData,
+};
+
+type CatalogSkill = {
+  id: string;
+  title: string;
+  description: string;
+  sourceUrl: string | null;
+  imageUrl: string | null;
+  createdAt: Date;
+  skillMarkdown?: string;
+} & SkillAuthorFields;
+
+function toCatalogSkill(
+  row: {
+    id: string;
+    title: string;
+    description: string;
+    sourceUrl: string | null;
+    imageUrl: string | null;
+    createdAt: Date;
+    skillMarkdown?: string;
+  } & SkillAuthorRow,
+): CatalogSkill {
+  const author = mapSkillAuthorFields(row);
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    sourceUrl: row.sourceUrl,
+    imageUrl: row.imageUrl,
+    createdAt: row.createdAt,
+    skillMarkdown: row.skillMarkdown,
+    ...author,
+  };
+}
+
+export function formatSkillSharedBy(skill: SkillAuthorFields): string {
+  if (skill.personaId) return skill.agentName;
+  return `${skill.agentName} (via @${skill.ownerUsername})`;
+}
+
+export function skillCatalogUrl(origin: string, skillId: string): string {
+  return `${origin}/skills/${skillId}`;
+}
+
+export function skillDownloadUrl(origin: string, skillId: string): string {
+  return `${origin}/api/skills/${skillId}/download`;
+}
+
+export function skillPublicUrls(origin: string, skillId: string) {
+  return {
+    catalogUrl: skillCatalogUrl(origin, skillId),
+    downloadUrl: skillDownloadUrl(origin, skillId),
+  };
+}
 
 export async function listSharedSkills() {
-  return db
+  const rows = await db
     .select({
       id: sharedSkills.id,
       title: sharedSkills.title,
       description: sharedSkills.description,
       sourceUrl: sharedSkills.sourceUrl,
+      imageUrl: sharedSkills.imageUrl,
       createdAt: sharedSkills.createdAt,
-      agentName: agentKeys.name,
-      ownerUsername: users.username,
+      ...skillAuthorRowSelect,
     })
     .from(sharedSkills)
     .innerJoin(agentKeys, eq(sharedSkills.agentKeyId, agentKeys.id))
     .innerJoin(users, eq(agentKeys.userId, users.id))
+    .leftJoin(personas, eq(sharedSkills.personaId, personas.id))
     .orderBy(desc(sharedSkills.createdAt));
+
+  return rows.map(toCatalogSkill);
 }
 
 export async function getSharedSkillById(id: string) {
@@ -33,35 +129,45 @@ export async function getSharedSkillById(id: string) {
       description: sharedSkills.description,
       skillMarkdown: sharedSkills.skillMarkdown,
       sourceUrl: sharedSkills.sourceUrl,
+      imageUrl: sharedSkills.imageUrl,
       createdAt: sharedSkills.createdAt,
-      agentName: agentKeys.name,
-      ownerUsername: users.username,
+      ...skillAuthorRowSelect,
     })
     .from(sharedSkills)
     .innerJoin(agentKeys, eq(sharedSkills.agentKeyId, agentKeys.id))
     .innerJoin(users, eq(agentKeys.userId, users.id))
+    .leftJoin(personas, eq(sharedSkills.personaId, personas.id))
     .where(eq(sharedSkills.id, id))
     .limit(1);
 
-  return rows[0] ?? null;
+  const row = rows[0];
+  return row ? toCatalogSkill(row) : null;
 }
 
-export async function submitSharedSkill(
-  agent: AuthenticatedAgentKey,
-  input: {
-    title: string;
-    description: string;
-    skillMarkdown: string;
-    sourceUrl?: string;
-  },
-): Promise<
-  | { ok: true; skillId: string; catalogUrl: string }
+async function validateSkillPayload(input: {
+  title: string;
+  description: string;
+  skillMarkdown: string;
+  sourceUrl?: string;
+  imageUrl?: string;
+}): Promise<
+  | {
+      ok: true;
+      title: string;
+      description: string;
+      skillMarkdown: string;
+      sourceUrl: string | null;
+      imageUrl: string | null;
+    }
   | { ok: false; reason: string }
 > {
   const title = input.title.trim();
   const description = input.description.trim();
   const skillMarkdown = input.skillMarkdown.trim();
-  const sourceUrl = input.sourceUrl?.trim() || null;
+  const sourceCheck = validateOptionalHttpUrl(input.sourceUrl, "url");
+  if (!sourceCheck.ok) return sourceCheck;
+  const imageCheck = validateOptionalHttpUrl(input.imageUrl, "image_url");
+  if (!imageCheck.ok) return imageCheck;
 
   if (!title || title.length > 120) {
     return { ok: false, reason: "Title is required (max 120 characters)." };
@@ -78,16 +184,31 @@ export async function submitSharedSkill(
       reason: `skill_markdown is required (max ${MAX_SKILL_MARKDOWN_CHARS} characters).`,
     };
   }
-  if (sourceUrl) {
-    try {
-      const parsed = new URL(sourceUrl);
-      if (!["http:", "https:"].includes(parsed.protocol)) {
-        return { ok: false, reason: "url must be http or https." };
-      }
-    } catch {
-      return { ok: false, reason: "url is not a valid URL." };
-    }
-  }
+  return {
+    ok: true,
+    title,
+    description,
+    skillMarkdown,
+    sourceUrl: sourceCheck.value,
+    imageUrl: imageCheck.value,
+  };
+}
+
+export async function submitSharedSkill(
+  agent: AuthenticatedAgentKey,
+  input: {
+    title: string;
+    description: string;
+    skillMarkdown: string;
+    sourceUrl?: string;
+    imageUrl?: string;
+  },
+): Promise<
+  | { ok: true; skillId: string; catalogUrl: string; downloadUrl: string }
+  | { ok: false; reason: string }
+> {
+  const validated = await validateSkillPayload(input);
+  if (!validated.ok) return validated;
 
   const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const recent = await db
@@ -111,16 +232,62 @@ export async function submitSharedSkill(
   await db.insert(sharedSkills).values({
     id: skillId,
     agentKeyId: agent.id,
-    title,
-    description,
-    skillMarkdown,
-    sourceUrl,
+    title: validated.title,
+    description: validated.description,
+    skillMarkdown: validated.skillMarkdown,
+    sourceUrl: validated.sourceUrl,
+    imageUrl: validated.imageUrl,
   });
 
   const origin = getSiteOrigin();
+  const urls = skillPublicUrls(origin, skillId);
   return {
     ok: true,
     skillId,
-    catalogUrl: `${origin}/skills/${skillId}`,
+    catalogUrl: urls.catalogUrl,
+    downloadUrl: urls.downloadUrl,
+  };
+}
+
+export async function submitSharedSkillAsPersona(
+  agent: AuthenticatedAgentKey,
+  persona: PersonaRecord,
+  input: {
+    title: string;
+    description: string;
+    skillMarkdown: string;
+    sourceUrl?: string;
+    imageUrl?: string;
+  },
+): Promise<
+  | { ok: true; skillId: string; catalogUrl: string; downloadUrl: string }
+  | { ok: false; reason: string }
+> {
+  if (!agent.isAdmin) {
+    return { ok: false, reason: "Forbidden." };
+  }
+
+  const validated = await validateSkillPayload(input);
+  if (!validated.ok) return validated;
+
+  const skillId = randomToken(12);
+  await db.insert(sharedSkills).values({
+    id: skillId,
+    agentKeyId: agent.id,
+    personaId: persona.id,
+    title: validated.title,
+    description: validated.description,
+    skillMarkdown: validated.skillMarkdown,
+    sourceUrl: validated.sourceUrl,
+    imageUrl: validated.imageUrl,
+  });
+
+  const origin = getSiteOrigin();
+  const urls = skillPublicUrls(origin, skillId);
+  return {
+    ok: true,
+    skillId,
+    catalogUrl: urls.catalogUrl,
+    downloadUrl: urls.downloadUrl,
   };
 }

@@ -17,6 +17,23 @@ export function formatAuthorLabel(
   return "unknown";
 }
 
+/** Room/message display — personas show as standalone agents (no via @owner). */
+export function formatMessageAuthorLabel(params: {
+  authorType: "human" | "agent";
+  username: string | null;
+  agentName: string | null;
+  personaId: string | null;
+}): string {
+  if (params.personaId && params.agentName) {
+    return params.agentName;
+  }
+  return formatAuthorLabel(
+    params.authorType,
+    params.username,
+    params.agentName,
+  );
+}
+
 export function authorInitials(label: string): string {
   const cleaned = label.replace(/\(via @[^)]+\)/, "").trim();
   const parts = cleaned

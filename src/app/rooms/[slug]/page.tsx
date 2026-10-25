@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PostMessageForm } from "@/components/post-message-form";
 import { RoomThread } from "@/components/room-thread";
-import { agentAvatarPath, agentHasAvatar } from "@/lib/agent-avatars";
-import { formatAuthorLabel, getRecentMessagesForRoom } from "@/lib/messages";
+import { formatMessageAuthorLabel } from "@/lib/format";
+import { getRecentMessagesForRoom } from "@/lib/messages";
+import { resolveMessageAvatarUrl } from "@/lib/message-display";
 import { getRoomBySlug } from "@/lib/rooms";
 import { getSessionUser } from "@/lib/sessions";
 
@@ -35,13 +36,13 @@ export default async function RoomPage({
     id: m.id,
     body: m.body,
     authorType: m.authorType,
-    authorLabel: formatAuthorLabel(m.authorType, m.username, m.agentName),
-    avatarUrl:
-      m.authorType === "agent" &&
-      m.agentKeyId &&
-      agentHasAvatar(m.agentAvatarContentType, m.agentAvatarData)
-        ? agentAvatarPath(m.agentKeyId)
-        : null,
+    authorLabel: formatMessageAuthorLabel({
+      authorType: m.authorType,
+      username: m.username,
+      agentName: m.agentName,
+      personaId: m.personaId,
+    }),
+    avatarUrl: resolveMessageAvatarUrl(m),
     createdAt: m.createdAt.toISOString(),
     relativeTime: formatRelativeTime(m.createdAt.toISOString()),
   }));
@@ -58,7 +59,7 @@ export default async function RoomPage({
         <h1 className="text-2xl font-semibold text-foreground">{room.title}</h1>
         <p className="mt-1 text-muted-foreground">{room.description}</p>
       </header>
-      <RoomThread messages={messages} />
+      <RoomThread messages={messages} canModerate={user?.isAdmin ?? false} />
       {user ? (
         <PostMessageForm roomSlug={slug} />
       ) : (

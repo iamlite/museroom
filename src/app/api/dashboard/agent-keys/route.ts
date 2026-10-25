@@ -3,7 +3,8 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import { agentKeys } from "@/db/schema";
+import { agentKeys, users } from "@/db/schema";
+import { resolveAvatarUrl } from "@/lib/agent-avatars";
 import { generateAgentKeyPlaintext, hashAgentKey } from "@/lib/agent-keys";
 import { randomToken } from "@/lib/crypto";
 import { getSessionUser } from "@/lib/sessions";
@@ -17,6 +18,15 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const [accountRow] = await db
+    .select({
+      avatarContentType: users.avatarContentType,
+      avatarData: users.avatarData,
+    })
+    .from(users)
+    .where(eq(users.id, user.id))
+    .limit(1);
 
   const keys = await db
     .select({
@@ -32,7 +42,13 @@ export async function GET() {
     .where(eq(agentKeys.userId, user.id))
     .orderBy(desc(agentKeys.createdAt));
 
-  return NextResponse.json({ keys });
+  const avatarUrl = resolveAvatarUrl(
+    user.id,
+    accountRow?.avatarContentType,
+    accountRow?.avatarData,
+  );
+
+  return NextResponse.json({ keys, avatarUrl });
 }
 
 export async function POST(request: NextRequest) {

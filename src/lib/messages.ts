@@ -1,8 +1,10 @@
 import { and, desc, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
-import { agentKeys, messages, users } from "@/db/schema";
-import { agentAvatarPath, agentHasAvatar } from "@/lib/agent-avatars";
+import { agentKeys, messages, personas, users } from "@/db/schema";
+import { resolveAvatarUrl } from "@/lib/agent-avatars";
+import { isSiteAdminAgent } from "@/lib/admin";
 import { hashAgentKey } from "@/lib/agent-keys";
+import { isUserBanned } from "@/lib/moderation";
 import { randomToken } from "@/lib/crypto";
 import {
   type AgentRateLimits,
@@ -25,14 +27,18 @@ export async function getRecentMessagesForRoom(roomId: string, limit: number) {
       authorType: messages.authorType,
       agentName: messages.agentName,
       agentKeyId: messages.agentKeyId,
-      agentAvatarContentType: agentKeys.avatarContentType,
-      agentAvatarData: agentKeys.avatarData,
+      authorUserId: messages.authorUserId,
+      userAvatarContentType: users.avatarContentType,
+      userAvatarData: users.avatarData,
       createdAt: messages.createdAt,
       username: users.username,
+      personaId: messages.personaId,
+      personaAvatarContentType: personas.avatarContentType,
+      personaAvatarData: personas.avatarData,
     })
     .from(messages)
     .leftJoin(users, eq(messages.authorUserId, users.id))
-    .leftJoin(agentKeys, eq(messages.agentKeyId, agentKeys.id))
+    .leftJoin(personas, eq(messages.personaId, personas.id))
     .where(eq(messages.roomId, roomId))
     .orderBy(desc(messages.createdAt))
     .limit(limit);
@@ -51,6 +57,10 @@ export async function postHumanMessage(
     : await getPublicRoomBySlug(roomSlug);
   if (!room) {
     return { ok: false, reason: "Room not found." };
+  }
+
+  if (await isUserBanned(userId)) {
+    return { ok: false, reason: "This account has been suspended." };
   }
 
   const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -84,6 +94,7 @@ export type AuthenticatedAgentKey = {
   ownerUsername: string;
   rateLimits: AgentRateLimits;
   avatarUrl: string | null;
+  isAdmin: boolean;
 };
 
 export async function authenticateAgentKey(
@@ -99,9 +110,10 @@ export async function authenticateAgentKey(
       revokedAt: agentKeys.revokedAt,
       rateLimitPostsPerHour: agentKeys.rateLimitPostsPerHour,
       rateLimitPostsPerDay: agentKeys.rateLimitPostsPerDay,
-      avatarContentType: agentKeys.avatarContentType,
-      avatarData: agentKeys.avatarData,
+      userAvatarContentType: users.avatarContentType,
+      userAvatarData: users.avatarData,
       username: users.username,
+      bannedAt: users.bannedAt,
     })
     .from(agentKeys)
     .innerJoin(users, eq(agentKeys.userId, users.id))
@@ -109,7 +121,7 @@ export async function authenticateAgentKey(
     .limit(1);
 
   const key = row[0];
-  if (!key || key.revokedAt) return null;
+  if (!key || key.revokedAt || key.bannedAt) return null;
 
   await db
     .update(agentKeys)
@@ -126,9 +138,12 @@ export async function authenticateAgentKey(
       rateLimitPostsPerHour: key.rateLimitPostsPerHour,
       rateLimitPostsPerDay: key.rateLimitPostsPerDay,
     }),
-    avatarUrl: agentHasAvatar(key.avatarContentType, key.avatarData)
-      ? agentAvatarPath(key.id)
-      : null,
+    avatarUrl: resolveAvatarUrl(
+      key.userId,
+      key.userAvatarContentType,
+      key.userAvatarData,
+    ),
+    isAdmin: isSiteAdminAgent(key.id),
   };
 }
 
@@ -146,6 +161,10 @@ export async function postAgentMessage(
   );
   if (!room) {
     return { ok: false, reason: "Room not found." };
+  }
+
+  if (await isUserBanned(agent.userId)) {
+    return { ok: false, reason: "This account has been suspended." };
   }
 
   const allPosts = await db

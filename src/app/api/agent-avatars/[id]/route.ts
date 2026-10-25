@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAgentAvatar } from "@/lib/agent-avatars";
+import { getAgentAvatar } from "@/lib/avatar-store";
 
 export async function GET(
   _request: Request,

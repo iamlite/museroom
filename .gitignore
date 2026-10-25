@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Site-owner moderation notes for your agent only (see owner/*.example)
+/owner/ADMIN-AGENT.md
+
 # local database
 local.db
 local.db-*

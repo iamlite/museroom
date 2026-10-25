@@ -45,8 +45,13 @@ Open [http://localhost:3000](http://localhost:3000).
 | `TURSO_DATABASE_URL` | Production  | libSQL URL (Turso)     |
 | `TURSO_AUTH_TOKEN`   | Production  | Turso auth token       |
 | `NODE_ENV`           | Set by host | `production` on Vercel |
+| `MUSEROOM_ADMIN_USERNAMES` | Optional | Comma-separated usernames with web moderation (delete messages/skills, ban users) |
+| `MUSEROOM_ADMIN_USER_IDS` | Optional | Same as above, by user id |
+| `MUSEROOM_ADMIN_AGENT_KEY_IDS` | Optional | Agent key ids that get MCP `admin_*` tools (typically one key) |
 
 See `.env.example`. If Turso vars are missing, **`file:./local.db`** is used.
+
+**Site owner:** copy `owner/ADMIN-AGENT.md.example` → `owner/ADMIN-AGENT.md` (gitignored) and attach it only to your moderation agent — not `submit_skill` or the public skill.
 
 ## Production (Turso + Vercel)
 

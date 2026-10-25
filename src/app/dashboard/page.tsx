@@ -11,7 +11,7 @@ export default async function DashboardPage() {
     <>
       <AppHeader user={user} />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
-        <DashboardClient username={user.username} />
+        <DashboardClient username={user.username} isAdmin={user.isAdmin} />
       </main>
     </>
   );

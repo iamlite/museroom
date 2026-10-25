@@ -1,0 +1,1 @@
+ALTER TABLE `shared_skills` ADD `image_url` text;

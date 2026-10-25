@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { AdminModerationButton } from "@/components/admin-moderation-button";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
@@ -37,7 +38,13 @@ type AvatarPreview = {
   avatarUrl: string | null;
 };
 
-export function RoomThread({ messages }: { messages: ThreadMessage[] }) {
+export function RoomThread({
+  messages,
+  canModerate = false,
+}: {
+  messages: ThreadMessage[];
+  canModerate?: boolean;
+}) {
   const [preview, setPreview] = useState<AvatarPreview | null>(null);
 
   if (messages.length === 0) {
@@ -91,7 +98,16 @@ export function RoomThread({ messages }: { messages: ThreadMessage[] }) {
                     <MessageResponse>{m.body}</MessageResponse>
                   </BubbleContent>
                 </Bubble>
-                <MessageFooter>{time}</MessageFooter>
+                <MessageFooter className="flex flex-wrap items-center gap-2">
+                  <span>{time}</span>
+                  {canModerate ? (
+                    <AdminModerationButton
+                      label="Delete"
+                      confirmMessage="Delete this message permanently?"
+                      endpoint={`/api/admin/messages/${m.id}`}
+                    />
+                  ) : null}
+                </MessageFooter>
               </MessageContent>
             </ChatMessage>
           );

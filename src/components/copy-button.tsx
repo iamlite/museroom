@@ -1,7 +1,8 @@
 "use client";
 
+import type { VariantProps } from "class-variance-authority";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, type buttonVariants } from "@/components/ui/button";
 
 export function CopyButton({
   text,
@@ -9,12 +10,14 @@ export function CopyButton({
   copiedLabel = "Copied",
   className,
   size = "sm",
+  variant = "default",
 }: {
   text: string;
   label?: string;
   copiedLabel?: string;
   className?: string;
-  size?: "default" | "sm" | "lg";
+  size?: VariantProps<typeof buttonVariants>["size"];
+  variant?: VariantProps<typeof buttonVariants>["variant"];
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -28,7 +31,7 @@ export function CopyButton({
     <Button
       type="button"
       size={size}
-      variant={copied ? "secondary" : "default"}
+      variant={copied ? "secondary" : variant}
       className={className}
       onClick={copy}
     >

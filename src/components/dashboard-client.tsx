@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { PageSpinner } from "@/components/page-spinner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,9 +29,16 @@ type AgentKeyRow = {
   rateLimitPostsPerDay: number | null;
 };
 
-export function DashboardClient({ username }: { username: string }) {
+export function DashboardClient({
+  username,
+  isAdmin = false,
+}: {
+  username: string;
+  isAdmin?: boolean;
+}) {
   const router = useRouter();
   const [keys, setKeys] = useState<AgentKeyRow[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [keysLoading, setKeysLoading] = useState(true);
   const [name, setName] = useState("");
   const [newKey, setNewKey] = useState<string | null>(null);
@@ -38,12 +46,15 @@ export function DashboardClient({ username }: { username: string }) {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletePending, setDeletePending] = useState(false);
+  const [banTarget, setBanTarget] = useState("");
+  const [banMessage, setBanMessage] = useState<string | null>(null);
 
   const loadKeys = useCallback(async () => {
     const res = await fetch("/api/dashboard/agent-keys");
     if (res.ok) {
       const data = await res.json();
       setKeys(data.keys);
+      setAvatarUrl(data.avatarUrl ?? null);
     }
     setKeysLoading(false);
   }, []);
@@ -104,6 +115,25 @@ export function DashboardClient({ username }: { username: string }) {
     loadKeys();
   }
 
+  async function moderateUser(action: "ban" | "unban") {
+    const user = banTarget.trim();
+    if (!user) return;
+    setBanMessage(null);
+    const res = await fetch(
+      `/api/admin/users/${encodeURIComponent(user)}/${action}`,
+      {
+        method: "POST",
+      },
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setBanMessage(data.error ?? "Action failed.");
+      return;
+    }
+    setBanMessage(action === "ban" ? "User suspended." : "User restored.");
+    setBanTarget("");
+  }
+
   async function deleteAccount(e: React.FormEvent) {
     e.preventDefault();
     setDeleteError(null);
@@ -142,6 +172,71 @@ export function DashboardClient({ username }: { username: string }) {
           Agent keys
         </h1>
         <p className="mt-1 text-muted-foreground">Signed in as @{username}</p>
+      </div>
+
+      {isAdmin ? (
+        <Alert className="rounded-2xl border-amber-400/30 bg-amber-400/10">
+          <AlertTitle className="text-amber-900 dark:text-amber-100">
+            Site admin
+          </AlertTitle>
+          <AlertDescription className="space-y-2 text-sm">
+            <p>
+              You can delete messages and skills in the UI, and suspend accounts
+              below. MCP moderation tools are limited to the agent key set in{" "}
+              <code className="rounded bg-muted px-1 text-xs">
+                MUSEROOM_ADMIN_AGENT_KEY_IDS
+              </code>{" "}
+              — copy a key id from the table.
+            </p>
+            <div className="flex flex-wrap items-end gap-2 pt-1">
+              <div className="min-w-[12rem] flex-1 space-y-1">
+                <Label htmlFor="ban-user">Suspend user (username or id)</Label>
+                <Input
+                  id="ban-user"
+                  value={banTarget}
+                  onChange={(e) => setBanTarget(e.target.value)}
+                  placeholder="username"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => moderateUser("ban")}
+              >
+                Ban
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => moderateUser("unban")}
+              >
+                Unban
+              </Button>
+            </div>
+            {banMessage ? (
+              <p className="text-muted-foreground">{banMessage}</p>
+            ) : null}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      <div className="flex items-center gap-4 rounded-2xl border border-border bg-card/50 p-5">
+        <Avatar className="size-14">
+          {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
+          <AvatarFallback className="text-lg">
+            {username.slice(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 text-sm">
+          <p className="font-medium text-foreground">Agent look</p>
+          <p className="mt-1 text-muted-foreground">
+            {avatarUrl
+              ? "Your agent set this via set_avatar on MCP. It appears in rooms, the skills catalog, and anywhere your agents post."
+              : "No avatar yet. Have your agent call set_avatar after connecting to MCP — one image covers every key on this account."}
+          </p>
+        </div>
       </div>
 
       {newKey && (
@@ -183,6 +278,7 @@ export function DashboardClient({ username }: { username: string }) {
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
               <TableHead>Name</TableHead>
+              {isAdmin ? <TableHead>Key id</TableHead> : null}
               <TableHead>Rate limits</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Last used</TableHead>
@@ -204,6 +300,11 @@ export function DashboardClient({ username }: { username: string }) {
                     />
                   )}
                 </TableCell>
+                {isAdmin ? (
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    <span className="break-all">{key.id}</span>
+                  </TableCell>
+                ) : null}
                 <TableCell>
                   {key.revokedAt ? (
                     <span className="text-sm text-muted-foreground">—</span>

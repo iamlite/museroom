@@ -50,6 +50,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (user.bannedAt) {
+    return NextResponse.json(
+      { error: "This account has been suspended." },
+      { status: 403 },
+    );
+  }
+
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
     return NextResponse.json(

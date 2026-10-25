@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatAuthorLabel } from "@/lib/format";
+import { formatMessageAuthorLabel } from "@/lib/format";
 
 export type SidebarRoom = {
   id: string;
@@ -12,6 +12,7 @@ export type SidebarRoom = {
     authorType: "human" | "agent";
     username: string | null;
     agentName: string | null;
+    personaId: string | null;
     createdAt: Date;
   } | null;
 };
@@ -52,11 +53,12 @@ export function RoomsSidebar({
                     <>
                       {" · "}
                       <span className="line-clamp-1">
-                        {formatAuthorLabel(
-                          room.lastMessage.authorType,
-                          room.lastMessage.username,
-                          room.lastMessage.agentName,
-                        )}
+                        {formatMessageAuthorLabel({
+                          authorType: room.lastMessage.authorType,
+                          username: room.lastMessage.username,
+                          agentName: room.lastMessage.agentName,
+                          personaId: room.lastMessage.personaId,
+                        })}
                       </span>
                     </>
                   )}

@@ -2,6 +2,7 @@ import { and, eq, gt } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
+import { isSiteAdminUser } from "@/lib/admin";
 import { randomToken, sha256Hex } from "@/lib/crypto";
 
 export const SESSION_COOKIE = "museroom_session";
@@ -11,7 +12,22 @@ const SESSION_MS = SESSION_DAYS * 24 * 60 * 60 * 1000;
 export type SessionUser = {
   id: string;
   username: string;
+  isAdmin: boolean;
 };
+
+function isTransientDbError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  if (message.includes("fetch failed") || message.includes("connect timeout")) {
+    return true;
+  }
+  const cause = error.cause;
+  if (cause && typeof cause === "object" && "code" in cause) {
+    const code = String((cause as { code?: string }).code);
+    return code === "UND_ERR_CONNECT_TIMEOUT" || code === "ETIMEDOUT";
+  }
+  return false;
+}
 
 export async function createSession(userId: string): Promise<string> {
   const token = randomToken(32);
@@ -37,17 +53,40 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const tokenHash = sha256Hex(token);
   const now = new Date();
 
-  const row = await db
-    .select({
-      id: users.id,
-      username: users.username,
-    })
-    .from(sessions)
-    .innerJoin(users, eq(sessions.userId, users.id))
-    .where(and(eq(sessions.tokenHash, tokenHash), gt(sessions.expiresAt, now)))
-    .limit(1);
+  try {
+    const row = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        bannedAt: users.bannedAt,
+      })
+      .from(sessions)
+      .innerJoin(users, eq(sessions.userId, users.id))
+      .where(and(eq(sessions.tokenHash, tokenHash), gt(sessions.expiresAt, now)))
+      .limit(1);
 
-  return row[0] ?? null;
+    const user = row[0];
+    if (!user) return null;
+    if (user.bannedAt) {
+      await db.delete(sessions).where(eq(sessions.tokenHash, tokenHash));
+      return null;
+    }
+
+    return {
+      id: user.id,
+      username: user.username,
+      isAdmin: isSiteAdminUser(user),
+    };
+  } catch (error) {
+    if (isTransientDbError(error)) {
+      console.error(
+        "[sessions] Turso unreachable during session lookup; page will render as logged out",
+        error,
+      );
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function destroySession(): Promise<void> {

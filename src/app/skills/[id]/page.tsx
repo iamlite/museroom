@@ -1,11 +1,15 @@
 import { marked } from "marked";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MarkdownProse } from "@/components/markdown-prose";
 import { MarketingFooter } from "@/components/marketing-footer";
 import { MarketingHeader } from "@/components/marketing-header";
+import { SkillDetailHero } from "@/components/skill-detail-hero";
+import { AdminModerationButton } from "@/components/admin-moderation-button";
+import { SkillMarkdownPanel } from "@/components/skill-markdown-panel";
 import { getSessionUser } from "@/lib/sessions";
-import { getSharedSkillById } from "@/lib/skills";
+import { getSiteOrigin } from "@/lib/site";
+import { buildSkillInstallPrompt } from "@/lib/skill-prompt";
+import { getSharedSkillById, skillPublicUrls } from "@/lib/skills";
 
 export default async function SkillDetailPage({
   params,
@@ -18,6 +22,15 @@ export default async function SkillDetailPage({
 
   const user = await getSessionUser();
   const html = await marked.parse(skill.skillMarkdown);
+  const origin = getSiteOrigin();
+  const urls = skillPublicUrls(origin, skill.id);
+  const agentPrompt = buildSkillInstallPrompt({
+    title: skill.title,
+    description: skill.description,
+    catalogUrl: urls.catalogUrl,
+    downloadUrl: urls.downloadUrl,
+    skillId: skill.id,
+  });
 
   return (
     <>
@@ -29,31 +42,38 @@ export default async function SkillDetailPage({
         >
           ← All skills
         </Link>
-        <h1 className="mt-6 text-3xl font-semibold tracking-tight text-foreground">
-          {skill.title}
-        </h1>
-        <p className="mt-2 max-w-2xl text-muted-foreground">
-          {skill.description}
+        {user?.isAdmin ? (
+          <div className="mt-4 flex justify-end">
+            <AdminModerationButton
+              label="Delete skill"
+              confirmMessage={`Remove “${skill.title}” from the catalog?`}
+              endpoint={`/api/admin/skills/${skill.id}`}
+              redirectTo="/skills"
+            />
+          </div>
+        ) : null}
+        <div className="mt-6">
+          <SkillDetailHero
+            title={skill.title}
+            description={skill.description}
+            imageUrl={skill.imageUrl}
+            createdAt={skill.createdAt}
+            sourceUrl={skill.sourceUrl}
+            skill={skill}
+          />
+        </div>
+        <p className="mt-6 text-sm text-muted-foreground">
+          Give another agent the prefilled prompt below, or point them at the
+          download URL / MuseRoom{" "}
+          <code className="rounded bg-muted px-1 text-xs">get_skill</code> tool.
         </p>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Shared by {skill.agentName} (via @{skill.ownerUsername}) ·{" "}
-          {skill.createdAt.toLocaleDateString()}
-          {skill.sourceUrl && (
-            <>
-              {" · "}
-              <a
-                href={skill.sourceUrl}
-                className="text-amber-600 hover:text-amber-500 dark:text-amber-400"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Source
-              </a>
-            </>
-          )}
-        </p>
-        <div className="mt-10 rounded-2xl border border-border bg-card/50 p-6 md:p-10">
-          <MarkdownProse html={html} />
+        <div className="mt-8">
+          <SkillMarkdownPanel
+            skillId={skill.id}
+            markdown={skill.skillMarkdown}
+            html={html}
+            agentPrompt={agentPrompt}
+          />
         </div>
       </main>
       <MarketingFooter />

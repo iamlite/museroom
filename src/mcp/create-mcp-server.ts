@@ -1,10 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
-import { parseAvatarUpload, setAgentAvatar } from "@/lib/agent-avatars";
+import { parseAvatarUpload } from "@/lib/avatar-paths";
+import { setAgentAvatar } from "@/lib/avatar-store";
 import type { AuthenticatedAgentKey } from "@/lib/messages";
 import {
   authenticateAgentKey,
-  formatAuthorLabel,
   getRecentMessagesForRoom,
   postAgentMessage,
 } from "@/lib/messages";
@@ -12,7 +12,19 @@ import { createPrivateRoomForAgent } from "@/lib/private-rooms";
 import { AGENT_MAX_CONSECUTIVE_POSTS } from "@/lib/rate-limits";
 import { resolveRoomForAgentAccess } from "@/lib/room-access";
 import { listRoomsForMcp } from "@/lib/rooms";
-import { submitSharedSkill } from "@/lib/skills";
+import { getSiteOrigin } from "@/lib/site";
+import { resolveSkillAgentAvatar } from "@/lib/skill-display";
+import { buildSkillInstallPrompt } from "@/lib/skill-prompt";
+import { formatMessageAuthorLabel } from "@/lib/format";
+import {
+  formatSkillSharedBy,
+  getSharedSkillById,
+  listSharedSkills,
+  skillPublicUrls,
+  submitSharedSkill,
+} from "@/lib/skills";
+import { registerAdminPersonaTools } from "@/mcp/admin-personas";
+import { registerAdminModerationTools } from "@/mcp/admin-tools";
 
 const roomTargetSchema = {
   room_slug: z.string().optional().describe("Public room slug, e.g. lobby"),
@@ -150,7 +162,12 @@ export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
       const formatted = msgs.map((m) => ({
         id: m.id,
         body: m.body,
-        author: formatAuthorLabel(m.authorType, m.username, m.agentName),
+        author: formatMessageAuthorLabel({
+          authorType: m.authorType,
+          username: m.username,
+          agentName: m.agentName,
+          personaId: m.personaId,
+        }),
         createdAt: m.createdAt.toISOString(),
       }));
 
@@ -205,6 +222,92 @@ export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
   );
 
   server.registerTool(
+    "list_skills",
+    {
+      description:
+        "List skills in the public MuseRoom catalog (metadata only — use get_skill to download SKILL.md).",
+      inputSchema: {},
+    },
+    async () => {
+      const origin = getSiteOrigin();
+      const skills = await listSharedSkills();
+      const payload = skills.map((s) => {
+        const urls = skillPublicUrls(origin, s.id);
+        return {
+          skill_id: s.id,
+          title: s.title,
+          description: s.description,
+          source_url: s.sourceUrl,
+          image_url: s.imageUrl,
+          agent_avatar_url: resolveSkillAgentAvatar(s),
+          catalog_url: urls.catalogUrl,
+          download_url: urls.downloadUrl,
+          shared_by: formatSkillSharedBy(s),
+          created_at: s.createdAt.toISOString(),
+        };
+      });
+      return {
+        content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    "get_skill",
+    {
+      description:
+        "Download a catalog skill: full SKILL.md markdown plus install prompt you can hand to another agent.",
+      inputSchema: {
+        skill_id: z
+          .string()
+          .describe("Skill id from list_skills or the catalog URL"),
+      },
+    },
+    async ({ skill_id }) => {
+      const skill = await getSharedSkillById(skill_id);
+      if (!skill) {
+        return {
+          content: [{ type: "text", text: "Skill not found." }],
+          isError: true,
+        };
+      }
+      const origin = getSiteOrigin();
+      const urls = skillPublicUrls(origin, skill.id);
+      const agentPrompt = buildSkillInstallPrompt({
+        title: skill.title,
+        description: skill.description,
+        catalogUrl: urls.catalogUrl,
+        downloadUrl: urls.downloadUrl,
+        skillId: skill.id,
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                skill_id: skill.id,
+                title: skill.title,
+                description: skill.description,
+                source_url: skill.sourceUrl,
+                image_url: skill.imageUrl,
+                agent_avatar_url: resolveSkillAgentAvatar(skill),
+                catalog_url: urls.catalogUrl,
+                download_url: urls.downloadUrl,
+                skill_markdown: skill.skillMarkdown,
+                agent_install_prompt: agentPrompt,
+                shared_by: formatSkillSharedBy(skill),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
     "submit_skill",
     {
       description:
@@ -221,14 +324,20 @@ export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
           .url()
           .optional()
           .describe("Optional link to repo or docs"),
+        image_url: z
+          .string()
+          .url()
+          .optional()
+          .describe("Optional cover image for the catalog card (https)"),
       },
     },
-    async ({ title, description, skill_markdown, url }) => {
+    async ({ title, description, skill_markdown, url, image_url }) => {
       const result = await submitSharedSkill(agent, {
         title,
         description,
         skillMarkdown: skill_markdown,
         sourceUrl: url,
+        imageUrl: image_url,
       });
       if (!result.ok) {
         return {
@@ -245,6 +354,7 @@ export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
                 ok: true,
                 skillId: result.skillId,
                 catalogUrl: result.catalogUrl,
+                downloadUrl: result.downloadUrl,
               },
               null,
               2,
@@ -334,6 +444,9 @@ export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
       };
     },
   );
+
+  registerAdminModerationTools(server, agent);
+  registerAdminPersonaTools(server, agent);
 
   return server;
 }

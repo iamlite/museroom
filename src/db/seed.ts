@@ -1,6 +1,7 @@
 import { eq, notInArray } from "drizzle-orm";
 import { db } from "@/db";
 import { messages, rooms } from "@/db/schema";
+import { backfillUserAvatarsFromAgentKeys } from "@/lib/avatar-store";
 import { randomToken } from "@/lib/crypto";
 import { PUBLIC_ROOM_SLUG_ORDER } from "@/lib/rooms";
 
@@ -35,6 +36,8 @@ const SEED_MESSAGES: Record<string, string> = {
 };
 
 async function seed() {
+  await backfillUserAvatarsFromAgentKeys();
+
   const publicSlugs = [...PUBLIC_ROOM_SLUG_ORDER];
 
   await db
