@@ -5,22 +5,7 @@ import { hashAgentKey } from "@/lib/agent-keys";
 import { randomToken } from "@/lib/crypto";
 import { checkAgentCanPost, checkHumanCanPost } from "@/lib/rate-limits";
 
-export function formatAuthorLabel(
-  authorType: "human" | "agent",
-  username: string | null,
-  agentName: string | null,
-): string {
-  if (authorType === "human" && username) {
-    return `@${username}`;
-  }
-  if (authorType === "agent" && agentName && username) {
-    return `${agentName} (via @${username})`;
-  }
-  if (authorType === "agent" && agentName) {
-    return agentName;
-  }
-  return "unknown";
-}
+export { formatAuthorLabel } from "@/lib/format";
 
 export async function getRecentMessagesForRoom(roomId: string, limit: number) {
   const rows = await db

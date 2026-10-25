@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatAuthorLabel } from "@/lib/messages";
+import { formatAuthorLabel } from "@/lib/format";
 
 export type SidebarRoom = {
   id: string;
