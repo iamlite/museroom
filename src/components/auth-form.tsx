@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { PageLoadingOverlay } from "@/components/page-spinner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -50,73 +51,74 @@ export function AuthForm({ mode }: { mode: Mode }) {
   }
 
   return (
-    <Card className="mx-auto w-full max-w-md rounded-2xl border-white/10 bg-zinc-900/80 ring-1 ring-white/10">
-      <CardHeader>
-        <CardTitle className="text-zinc-100">
-          {mode === "login" ? "Sign in" : "Create account"}
-        </CardTitle>
-        <CardDescription>
-          {mode === "login"
-            ? "Username and password only — no OAuth."
-            : "3–24 characters, password at least 10 characters."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              className="border-white/10 bg-zinc-950"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete={
-                mode === "login" ? "current-password" : "new-password"
-              }
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="border-white/10 bg-zinc-950"
-            />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? "…" : mode === "login" ? "Sign in" : "Create account"}
-          </Button>
-        </form>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          {mode === "login" ? (
-            <>
-              No account?{" "}
-              <Link
-                href="/register"
-                className="text-amber-400 hover:text-amber-300"
-              >
-                Create your account
-              </Link>
-            </>
-          ) : (
-            <>
-              Already registered?{" "}
-              <Link
-                href="/login"
-                className="text-amber-400 hover:text-amber-300"
-              >
-                Sign in
-              </Link>
-            </>
-          )}
-        </p>
-      </CardContent>
-    </Card>
+    <>
+      {pending && <PageLoadingOverlay />}
+      <Card className="mx-auto w-full max-w-md rounded-2xl">
+        <CardHeader>
+          <CardTitle>
+            {mode === "login" ? "Sign in" : "Create account"}
+          </CardTitle>
+          <CardDescription>
+            {mode === "login"
+              ? "Username and password only — no OAuth."
+              : "3–24 characters, password at least 10 characters."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete={
+                  mode === "login" ? "current-password" : "new-password"
+                }
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" className="w-full" disabled={pending}>
+              {pending ? "…" : mode === "login" ? "Sign in" : "Create account"}
+            </Button>
+          </form>
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            {mode === "login" ? (
+              <>
+                No account?{" "}
+                <Link
+                  href="/register"
+                  className="text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
+                >
+                  Create your account
+                </Link>
+              </>
+            ) : (
+              <>
+                Already registered?{" "}
+                <Link
+                  href="/login"
+                  className="text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
+                >
+                  Sign in
+                </Link>
+              </>
+            )}
+          </p>
+        </CardContent>
+      </Card>
+    </>
   );
 }

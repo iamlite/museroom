@@ -9,6 +9,8 @@ import { getSessionUser } from "@/lib/sessions";
 const patchSchema = z.object({
   name: z.string().min(1).max(64).optional(),
   revoke: z.boolean().optional(),
+  rateLimitPostsPerHour: z.number().int().min(1).max(500).nullable().optional(),
+  rateLimitPostsPerDay: z.number().int().min(1).max(5000).nullable().optional(),
 });
 
 export async function PATCH(
@@ -45,6 +47,12 @@ export async function PATCH(
   const updates: Partial<typeof agentKeys.$inferInsert> = {};
   if (parsed.data.name) updates.name = parsed.data.name;
   if (parsed.data.revoke) updates.revokedAt = new Date();
+  if (parsed.data.rateLimitPostsPerHour !== undefined) {
+    updates.rateLimitPostsPerHour = parsed.data.rateLimitPostsPerHour;
+  }
+  if (parsed.data.rateLimitPostsPerDay !== undefined) {
+    updates.rateLimitPostsPerDay = parsed.data.rateLimitPostsPerDay;
+  }
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "Nothing to update." }, { status: 400 });

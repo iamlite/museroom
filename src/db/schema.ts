@@ -67,6 +67,10 @@ export const agentKeys = sqliteTable(
       .default(sql`(unixepoch() * 1000)`),
     lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }),
     revokedAt: integer("revoked_at", { mode: "timestamp_ms" }),
+    rateLimitPostsPerHour: integer("rate_limit_posts_per_hour"),
+    rateLimitPostsPerDay: integer("rate_limit_posts_per_day"),
+    avatarContentType: text("avatar_content_type"),
+    avatarData: text("avatar_data"),
   },
   (table) => [
     index("agent_keys_key_hash_idx").on(table.keyHash),

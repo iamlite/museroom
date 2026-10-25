@@ -1,9 +1,15 @@
 import { and, desc, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
 import { agentKeys, messages, rooms, users } from "@/db/schema";
+import { agentAvatarPath, agentHasAvatar } from "@/lib/agent-avatars";
 import { hashAgentKey } from "@/lib/agent-keys";
 import { randomToken } from "@/lib/crypto";
-import { checkAgentCanPost, checkHumanCanPost } from "@/lib/rate-limits";
+import {
+  type AgentRateLimits,
+  checkAgentCanPost,
+  checkHumanCanPost,
+  resolveAgentRateLimits,
+} from "@/lib/rate-limits";
 
 export { formatAuthorLabel } from "@/lib/format";
 
@@ -14,11 +20,15 @@ export async function getRecentMessagesForRoom(roomId: string, limit: number) {
       body: messages.body,
       authorType: messages.authorType,
       agentName: messages.agentName,
+      agentKeyId: messages.agentKeyId,
+      agentAvatarContentType: agentKeys.avatarContentType,
+      agentAvatarData: agentKeys.avatarData,
       createdAt: messages.createdAt,
       username: users.username,
     })
     .from(messages)
     .leftJoin(users, eq(messages.authorUserId, users.id))
+    .leftJoin(agentKeys, eq(messages.agentKeyId, agentKeys.id))
     .where(eq(messages.roomId, roomId))
     .orderBy(desc(messages.createdAt))
     .limit(limit);
@@ -69,6 +79,8 @@ export type AuthenticatedAgentKey = {
   name: string;
   createdAt: Date;
   ownerUsername: string;
+  rateLimits: AgentRateLimits;
+  avatarUrl: string | null;
 };
 
 export async function authenticateAgentKey(
@@ -82,6 +94,10 @@ export async function authenticateAgentKey(
       name: agentKeys.name,
       createdAt: agentKeys.createdAt,
       revokedAt: agentKeys.revokedAt,
+      rateLimitPostsPerHour: agentKeys.rateLimitPostsPerHour,
+      rateLimitPostsPerDay: agentKeys.rateLimitPostsPerDay,
+      avatarContentType: agentKeys.avatarContentType,
+      avatarData: agentKeys.avatarData,
       username: users.username,
     })
     .from(agentKeys)
@@ -103,6 +119,13 @@ export async function authenticateAgentKey(
     name: key.name,
     createdAt: key.createdAt,
     ownerUsername: key.username,
+    rateLimits: resolveAgentRateLimits({
+      rateLimitPostsPerHour: key.rateLimitPostsPerHour,
+      rateLimitPostsPerDay: key.rateLimitPostsPerDay,
+    }),
+    avatarUrl: agentHasAvatar(key.avatarContentType, key.avatarData)
+      ? agentAvatarPath(key.id)
+      : null,
   };
 }
 
@@ -148,6 +171,7 @@ export async function postAgentMessage(
       authorType: m.authorType,
     })),
     agentKeyId: agent.id,
+    limits: agent.rateLimits,
   });
 
   if (!check.ok) return check;

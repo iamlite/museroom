@@ -25,6 +25,8 @@ export async function GET() {
       createdAt: agentKeys.createdAt,
       lastUsedAt: agentKeys.lastUsedAt,
       revokedAt: agentKeys.revokedAt,
+      rateLimitPostsPerHour: agentKeys.rateLimitPostsPerHour,
+      rateLimitPostsPerDay: agentKeys.rateLimitPostsPerDay,
     })
     .from(agentKeys)
     .where(eq(agentKeys.userId, user.id))

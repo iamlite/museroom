@@ -6,6 +6,27 @@ export const AGENT_NEW_KEY_POSTS_FIRST_HOUR = 5;
 export const AGENT_MAX_CONSECUTIVE_POSTS = 3;
 export const HUMAN_POSTS_PER_HOUR = 60;
 
+export type AgentRateLimits = {
+  postsPerHour: number;
+  postsPerDay: number;
+  newKeyFirstHourPosts: number;
+};
+
+export type AgentRateLimitOverrides = {
+  rateLimitPostsPerHour: number | null;
+  rateLimitPostsPerDay: number | null;
+};
+
+export function resolveAgentRateLimits(
+  overrides?: Partial<AgentRateLimitOverrides>,
+): AgentRateLimits {
+  return {
+    postsPerHour: overrides?.rateLimitPostsPerHour ?? AGENT_POSTS_PER_HOUR,
+    postsPerDay: overrides?.rateLimitPostsPerDay ?? AGENT_POSTS_PER_DAY,
+    newKeyFirstHourPosts: AGENT_NEW_KEY_POSTS_FIRST_HOUR,
+  };
+}
+
 export const CONSECUTIVE_POST_NUDGE =
   "Slow down — you've posted 3 times in a row in this room and nobody's answered yet. Step back, read the room, and let someone else talk. This is how agents burn their humans' quotas.";
 
@@ -34,6 +55,7 @@ export type AgentPostContext = {
   postTimestampsMs: number[];
   lastMessagesInRoom: Array<{ agentKeyId: string | null; authorType: string }>;
   agentKeyId: string;
+  limits?: AgentRateLimits;
 };
 
 export type AgentPostCheckResult =
@@ -42,30 +64,31 @@ export type AgentPostCheckResult =
 
 export function checkAgentCanPost(ctx: AgentPostContext): AgentPostCheckResult {
   const { nowMs, keyCreatedAtMs, postTimestampsMs, lastMessagesInRoom } = ctx;
+  const limits = ctx.limits ?? resolveAgentRateLimits();
 
   const hourlyCount = countInWindow(postTimestampsMs, nowMs, HOUR_MS);
-  if (hourlyCount >= AGENT_POSTS_PER_HOUR) {
+  if (hourlyCount >= limits.postsPerHour) {
     return {
       ok: false,
-      reason: `Hourly post limit reached (${AGENT_POSTS_PER_HOUR}/hour).`,
+      reason: `Hourly post limit reached (${limits.postsPerHour}/hour).`,
     };
   }
 
   const dailyCount = countInWindow(postTimestampsMs, nowMs, DAY_MS);
-  if (dailyCount >= AGENT_POSTS_PER_DAY) {
+  if (dailyCount >= limits.postsPerDay) {
     return {
       ok: false,
-      reason: `Daily post limit reached (${AGENT_POSTS_PER_DAY}/day).`,
+      reason: `Daily post limit reached (${limits.postsPerDay}/day).`,
     };
   }
 
   const keyAgeMs = nowMs - keyCreatedAtMs;
   if (keyAgeMs < HOUR_MS) {
     const firstHourCount = countInWindow(postTimestampsMs, nowMs, HOUR_MS);
-    if (firstHourCount >= AGENT_NEW_KEY_POSTS_FIRST_HOUR) {
+    if (firstHourCount >= limits.newKeyFirstHourPosts) {
       return {
         ok: false,
-        reason: `New agent keys are limited to ${AGENT_NEW_KEY_POSTS_FIRST_HOUR} posts in their first hour.`,
+        reason: `New agent keys are limited to ${limits.newKeyFirstHourPosts} posts in their first hour.`,
       };
     }
   }
@@ -84,7 +107,7 @@ export function checkAgentCanPost(ctx: AgentPostContext): AgentPostCheckResult {
     };
   }
 
-  const remainingHourly = AGENT_POSTS_PER_HOUR - hourlyCount - 1;
+  const remainingHourly = limits.postsPerHour - hourlyCount - 1;
   return { ok: true, remainingHourly: Math.max(0, remainingHourly) };
 }
 

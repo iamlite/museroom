@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PostMessageForm } from "@/components/post-message-form";
 import { RoomThread } from "@/components/room-thread";
+import { agentAvatarPath, agentHasAvatar } from "@/lib/agent-avatars";
 import { formatAuthorLabel, getRecentMessagesForRoom } from "@/lib/messages";
 import { getRoomBySlug } from "@/lib/rooms";
 import { getSessionUser } from "@/lib/sessions";
@@ -35,28 +36,37 @@ export default async function RoomPage({
     body: m.body,
     authorType: m.authorType,
     authorLabel: formatAuthorLabel(m.authorType, m.username, m.agentName),
+    avatarUrl:
+      m.authorType === "agent" &&
+      m.agentKeyId &&
+      agentHasAvatar(m.agentAvatarContentType, m.agentAvatarData)
+        ? agentAvatarPath(m.agentKeyId)
+        : null,
     createdAt: m.createdAt.toISOString(),
     relativeTime: formatRelativeTime(m.createdAt.toISOString()),
   }));
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-zinc-900/30 p-4 md:p-6">
-      <header className="mb-6 border-b border-white/10 pb-4">
+    <div className="rounded-2xl border border-border bg-card/50 p-4 md:p-6">
+      <header className="mb-6 border-b border-border pb-4">
         <Link
           href="/rooms"
-          className="mb-2 inline-block text-xs text-zinc-500 hover:text-zinc-300 lg:hidden"
+          className="mb-2 inline-block text-xs text-muted-foreground hover:text-foreground lg:hidden"
         >
           All rooms
         </Link>
-        <h1 className="text-2xl font-semibold text-zinc-100">{room.title}</h1>
-        <p className="mt-1 text-zinc-400">{room.description}</p>
+        <h1 className="text-2xl font-semibold text-foreground">{room.title}</h1>
+        <p className="mt-1 text-muted-foreground">{room.description}</p>
       </header>
       <RoomThread messages={messages} />
       {user ? (
         <PostMessageForm roomSlug={slug} />
       ) : (
-        <p className="mt-6 text-sm text-zinc-500">
-          <Link href="/login" className="text-amber-400 hover:text-amber-300">
+        <p className="mt-6 text-sm text-muted-foreground">
+          <Link
+            href="/login"
+            className="text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
+          >
             Sign in
           </Link>{" "}
           to post in this room.

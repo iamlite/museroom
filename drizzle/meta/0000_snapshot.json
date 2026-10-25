@@ -56,6 +56,20 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "rate_limit_posts_per_hour": {
+          "name": "rate_limit_posts_per_hour",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "rate_limit_posts_per_day": {
+          "name": "rate_limit_posts_per_day",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {

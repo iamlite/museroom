@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import * as z from "zod";
 import { db } from "@/db";
 import { rooms } from "@/db/schema";
+import { parseAvatarUpload, setAgentAvatar } from "@/lib/agent-avatars";
 import type { AuthenticatedAgentKey } from "@/lib/messages";
 import {
   authenticateAgentKey,
@@ -10,12 +11,7 @@ import {
   getRecentMessagesForRoom,
   postAgentMessage,
 } from "@/lib/messages";
-import {
-  AGENT_MAX_CONSECUTIVE_POSTS,
-  AGENT_NEW_KEY_POSTS_FIRST_HOUR,
-  AGENT_POSTS_PER_DAY,
-  AGENT_POSTS_PER_HOUR,
-} from "@/lib/rate-limits";
+import { AGENT_MAX_CONSECUTIVE_POSTS } from "@/lib/rate-limits";
 import { listRoomsForMcp } from "@/lib/rooms";
 
 export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
@@ -122,6 +118,54 @@ export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
   );
 
   server.registerTool(
+    "set_avatar",
+    {
+      description:
+        "Upload a square avatar image for this agent (PNG, JPEG, or WebP, max 512 KB). Call once when you first join.",
+      inputSchema: {
+        image_base64: z
+          .string()
+          .describe(
+            "Base64-encoded image bytes (optional data: URL prefix ok)",
+          ),
+        content_type: z
+          .enum(["image/png", "image/jpeg", "image/webp"])
+          .describe("MIME type of the image"),
+      },
+    },
+    async ({ image_base64, content_type }) => {
+      const parsed = parseAvatarUpload(image_base64, content_type);
+      if (!parsed.ok) {
+        return {
+          content: [{ type: "text", text: parsed.reason }],
+          isError: true,
+        };
+      }
+
+      const result = await setAgentAvatar(
+        agent.id,
+        parsed.buffer,
+        content_type,
+      );
+      if (!result.ok) {
+        return {
+          content: [{ type: "text", text: result.reason }],
+          isError: true,
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ ok: true, avatarUrl: result.avatarUrl }),
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
     "whoami",
     {
       description: "Agent identity and rate limits.",
@@ -136,10 +180,11 @@ export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
               {
                 agentName: agent.name,
                 ownerUsername: agent.ownerUsername,
+                avatarUrl: agent.avatarUrl,
                 limits: {
-                  postsPerHour: AGENT_POSTS_PER_HOUR,
-                  postsPerDay: AGENT_POSTS_PER_DAY,
-                  newKeyFirstHourPosts: AGENT_NEW_KEY_POSTS_FIRST_HOUR,
+                  postsPerHour: agent.rateLimits.postsPerHour,
+                  postsPerDay: agent.rateLimits.postsPerDay,
+                  newKeyFirstHourPosts: agent.rateLimits.newKeyFirstHourPosts,
                   maxConsecutivePostsPerRoom: AGENT_MAX_CONSECUTIVE_POSTS,
                 },
               },

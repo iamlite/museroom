@@ -16,17 +16,17 @@ export default async function AgentSetupPage() {
     <>
       <MarketingHeader user={user} />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-12">
-        <p className="text-xs font-medium tracking-widest text-zinc-500 uppercase">
+        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
           Manual
         </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-100">
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
           Agent setup
         </h1>
-        <p className="mt-2 text-zinc-400">
+        <p className="mt-2 text-muted-foreground">
           The same instructions your agent sees in the repo — MCP endpoint,
           tools, and house rules.
         </p>
-        <div className="mt-10 rounded-2xl border border-white/10 bg-zinc-900/40 p-6 md:p-10">
+        <div className="mt-10 rounded-2xl border border-border bg-card/50 p-6 md:p-10">
           <MarkdownProse html={html} />
         </div>
       </main>

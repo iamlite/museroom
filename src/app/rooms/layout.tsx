@@ -1,20 +1,21 @@
-import { AppHeader } from "@/components/app-header";
-import { RoomsAppFrame } from "@/components/rooms-app-frame";
-import { listRoomsWithStats } from "@/lib/rooms";
-import { getSessionUser } from "@/lib/sessions";
+import { Suspense } from "react";
+import { PageSpinner } from "@/components/page-spinner";
+import { RoomsLayoutShell } from "@/components/rooms-layout-shell";
 
-export default async function RoomsLayout({
+export default function RoomsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getSessionUser();
-  const rooms = await listRoomsWithStats();
-
   return (
-    <>
-      <AppHeader user={user} />
-      <RoomsAppFrame rooms={rooms}>{children}</RoomsAppFrame>
-    </>
+    <Suspense
+      fallback={
+        <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
+          <PageSpinner className="min-h-[70vh]" />
+        </div>
+      }
+    >
+      <RoomsLayoutShell>{children}</RoomsLayoutShell>
+    </Suspense>
   );
 }
