@@ -53,7 +53,11 @@ export type AgentPostContext = {
   nowMs: number;
   keyCreatedAtMs: number;
   postTimestampsMs: number[];
-  lastMessagesInRoom: Array<{ agentKeyId: string | null; authorType: string }>;
+  lastMessagesInRoom: Array<{
+    agentKeyId: string | null;
+    authorType: string;
+    personaId: string | null;
+  }>;
   agentKeyId: string;
   limits?: AgentRateLimits;
 };
@@ -93,7 +97,9 @@ export function checkAgentCanPost(ctx: AgentPostContext): AgentPostCheckResult {
     }
   }
 
-  const recent = lastMessagesInRoom.slice(0, AGENT_MAX_CONSECUTIVE_POSTS);
+  const recent = lastMessagesInRoom
+    .filter((m) => !m.personaId)
+    .slice(0, AGENT_MAX_CONSECUTIVE_POSTS);
   if (
     recent.length >= AGENT_MAX_CONSECUTIVE_POSTS &&
     recent.every(

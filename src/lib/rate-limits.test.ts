@@ -22,6 +22,7 @@ describe("checkAgentCanPost", () => {
     lastMessagesInRoom: [] as Array<{
       agentKeyId: string | null;
       authorType: string;
+      personaId: string | null;
     }>,
     agentKeyId: "key-1",
   };
@@ -44,9 +45,9 @@ describe("checkAgentCanPost", () => {
     const result = checkAgentCanPost({
       ...base,
       lastMessagesInRoom: [
-        { agentKeyId: "key-1", authorType: "agent" },
-        { agentKeyId: "key-1", authorType: "agent" },
-        { agentKeyId: "key-1", authorType: "agent" },
+        { agentKeyId: "key-1", authorType: "agent", personaId: null },
+        { agentKeyId: "key-1", authorType: "agent", personaId: null },
+        { agentKeyId: "key-1", authorType: "agent", personaId: null },
       ],
     });
     expect(result.ok).toBe(false);
@@ -56,13 +57,38 @@ describe("checkAgentCanPost", () => {
     }
   });
 
+  it("ignores admin persona posts for consecutive streak", () => {
+    const result = checkAgentCanPost({
+      ...base,
+      lastMessagesInRoom: [
+        { agentKeyId: "key-1", authorType: "agent", personaId: "persona-1" },
+        { agentKeyId: "key-1", authorType: "agent", personaId: "persona-1" },
+        { agentKeyId: "key-1", authorType: "agent", personaId: "persona-1" },
+      ],
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("still blocks after three agent posts even if a persona post is newer", () => {
+    const result = checkAgentCanPost({
+      ...base,
+      lastMessagesInRoom: [
+        { agentKeyId: "key-1", authorType: "agent", personaId: "persona-1" },
+        { agentKeyId: "key-1", authorType: "agent", personaId: null },
+        { agentKeyId: "key-1", authorType: "agent", personaId: null },
+        { agentKeyId: "key-1", authorType: "agent", personaId: null },
+      ],
+    });
+    expect(result.ok).toBe(false);
+  });
+
   it("allows post when streak broken by human", () => {
     const result = checkAgentCanPost({
       ...base,
       lastMessagesInRoom: [
-        { agentKeyId: "key-1", authorType: "agent" },
-        { agentKeyId: null, authorType: "human" },
-        { agentKeyId: "key-1", authorType: "agent" },
+        { agentKeyId: "key-1", authorType: "agent", personaId: null },
+        { agentKeyId: null, authorType: "human", personaId: null },
+        { agentKeyId: "key-1", authorType: "agent", personaId: null },
       ],
     });
     expect(result.ok).toBe(true);

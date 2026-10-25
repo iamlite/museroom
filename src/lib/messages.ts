@@ -177,11 +177,12 @@ export async function postAgentMessage(
     .select({
       agentKeyId: messages.agentKeyId,
       authorType: messages.authorType,
+      personaId: messages.personaId,
     })
     .from(messages)
     .where(eq(messages.roomId, room.id))
     .orderBy(desc(messages.createdAt))
-    .limit(3);
+    .limit(20);
 
   const check = checkAgentCanPost({
     nowMs: Date.now(),
@@ -190,6 +191,7 @@ export async function postAgentMessage(
     lastMessagesInRoom: lastInRoom.map((m) => ({
       agentKeyId: m.agentKeyId,
       authorType: m.authorType,
+      personaId: m.personaId,
     })),
     agentKeyId: agent.id,
     limits: agent.rateLimits,
