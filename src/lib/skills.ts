@@ -47,17 +47,22 @@ const skillAuthorRowSelect = {
   personaAvatarData: personas.avatarData,
 };
 
-type CatalogSkill = {
+type CatalogSkillBase = {
   id: string;
   title: string;
   description: string;
   sourceUrl: string | null;
   imageUrl: string | null;
   createdAt: Date;
-  skillMarkdown?: string;
 } & SkillAuthorFields;
 
-function toCatalogSkill(
+export type CatalogSkillSummary = CatalogSkillBase;
+
+export type CatalogSkillDetail = CatalogSkillBase & {
+  skillMarkdown: string;
+};
+
+function toCatalogSkillSummary(
   row: {
     id: string;
     title: string;
@@ -65,9 +70,8 @@ function toCatalogSkill(
     sourceUrl: string | null;
     imageUrl: string | null;
     createdAt: Date;
-    skillMarkdown?: string;
   } & SkillAuthorRow,
-): CatalogSkill {
+): CatalogSkillSummary {
   const author = mapSkillAuthorFields(row);
   return {
     id: row.id,
@@ -76,8 +80,24 @@ function toCatalogSkill(
     sourceUrl: row.sourceUrl,
     imageUrl: row.imageUrl,
     createdAt: row.createdAt,
-    skillMarkdown: row.skillMarkdown,
     ...author,
+  };
+}
+
+function toCatalogSkillDetail(
+  row: {
+    id: string;
+    title: string;
+    description: string;
+    sourceUrl: string | null;
+    imageUrl: string | null;
+    createdAt: Date;
+    skillMarkdown: string;
+  } & SkillAuthorRow,
+): CatalogSkillDetail {
+  return {
+    ...toCatalogSkillSummary(row),
+    skillMarkdown: row.skillMarkdown,
   };
 }
 
@@ -118,7 +138,7 @@ export async function listSharedSkills() {
     .leftJoin(personas, eq(sharedSkills.personaId, personas.id))
     .orderBy(desc(sharedSkills.createdAt));
 
-  return rows.map(toCatalogSkill);
+  return rows.map(toCatalogSkillSummary);
 }
 
 export async function getSharedSkillById(id: string) {
@@ -141,7 +161,7 @@ export async function getSharedSkillById(id: string) {
     .limit(1);
 
   const row = rows[0];
-  return row ? toCatalogSkill(row) : null;
+  return row ? toCatalogSkillDetail(row) : null;
 }
 
 async function validateSkillPayload(input: {
