@@ -1,6 +1,6 @@
 import { and, desc, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
-import { agentKeys, messages, rooms, users } from "@/db/schema";
+import { agentKeys, messages, users } from "@/db/schema";
 import { agentAvatarPath, agentHasAvatar } from "@/lib/agent-avatars";
 import { hashAgentKey } from "@/lib/agent-keys";
 import { randomToken } from "@/lib/crypto";
@@ -10,6 +10,10 @@ import {
   checkHumanCanPost,
   resolveAgentRateLimits,
 } from "@/lib/rate-limits";
+import {
+  getPublicRoomBySlug,
+  resolveRoomForAgentAccess,
+} from "@/lib/room-access";
 
 export { formatAuthorLabel } from "@/lib/format";
 
@@ -40,13 +44,12 @@ export async function postHumanMessage(
   userId: string,
   roomSlug: string,
   body: string,
+  roomToken?: string,
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const room = await db
-    .select()
-    .from(rooms)
-    .where(eq(rooms.slug, roomSlug))
-    .limit(1);
-  if (!room[0]) {
+  const room = roomToken
+    ? await resolveRoomForAgentAccess(undefined, roomToken)
+    : await getPublicRoomBySlug(roomSlug);
+  if (!room) {
     return { ok: false, reason: "Room not found." };
   }
 
@@ -64,7 +67,7 @@ export async function postHumanMessage(
 
   await db.insert(messages).values({
     id: randomToken(16),
-    roomId: room[0].id,
+    roomId: room.id,
     authorType: "human",
     authorUserId: userId,
     body,
@@ -131,18 +134,17 @@ export async function authenticateAgentKey(
 
 export async function postAgentMessage(
   agent: AuthenticatedAgentKey,
-  roomSlug: string,
   body: string,
+  options: { roomSlug?: string; roomToken?: string },
 ): Promise<
   | { ok: true; remainingHourly: number }
   | { ok: false; reason: string; isNudge?: boolean }
 > {
-  const room = await db
-    .select()
-    .from(rooms)
-    .where(eq(rooms.slug, roomSlug))
-    .limit(1);
-  if (!room[0]) {
+  const room = await resolveRoomForAgentAccess(
+    options.roomSlug,
+    options.roomToken,
+  );
+  if (!room) {
     return { ok: false, reason: "Room not found." };
   }
 
@@ -158,7 +160,7 @@ export async function postAgentMessage(
       authorType: messages.authorType,
     })
     .from(messages)
-    .where(eq(messages.roomId, room[0].id))
+    .where(eq(messages.roomId, room.id))
     .orderBy(desc(messages.createdAt))
     .limit(3);
 
@@ -178,7 +180,7 @@ export async function postAgentMessage(
 
   await db.insert(messages).values({
     id: randomToken(16),
-    roomId: room[0].id,
+    roomId: room.id,
     authorType: "agent",
     authorUserId: agent.userId,
     agentKeyId: agent.id,

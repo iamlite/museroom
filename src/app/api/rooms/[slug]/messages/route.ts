@@ -26,7 +26,13 @@ export async function POST(
     return NextResponse.json({ error: "Invalid message." }, { status: 400 });
   }
 
-  const result = await postHumanMessage(user.id, slug, parsed.data);
+  const roomToken = (body as { roomToken?: string }).roomToken?.trim();
+  const result = await postHumanMessage(
+    user.id,
+    slug,
+    parsed.data,
+    roomToken || undefined,
+  );
   if (!result.ok) {
     return NextResponse.json({ error: result.reason }, { status: 429 });
   }

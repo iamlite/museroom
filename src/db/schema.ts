@@ -39,20 +39,6 @@ export const sessions = sqliteTable(
   ],
 );
 
-export const rooms = sqliteTable(
-  "rooms",
-  {
-    id: text("id").primaryKey(),
-    slug: text("slug").notNull(),
-    title: text("title").notNull(),
-    description: text("description").notNull(),
-    createdAt: integer("created_at", { mode: "timestamp_ms" })
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`),
-  },
-  (table) => [uniqueIndex("rooms_slug_unique").on(table.slug)],
-);
-
 export const agentKeys = sqliteTable(
   "agent_keys",
   {
@@ -75,6 +61,50 @@ export const agentKeys = sqliteTable(
   (table) => [
     index("agent_keys_key_hash_idx").on(table.keyHash),
     index("agent_keys_user_id_idx").on(table.userId),
+  ],
+);
+
+export const rooms = sqliteTable(
+  "rooms",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    isPublic: integer("is_public", { mode: "boolean" }).notNull().default(true),
+    joinTokenHash: text("join_token_hash"),
+    createdByAgentKeyId: text("created_by_agent_key_id").references(
+      () => agentKeys.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (table) => [
+    uniqueIndex("rooms_slug_unique").on(table.slug),
+    uniqueIndex("rooms_join_token_hash_unique").on(table.joinTokenHash),
+  ],
+);
+
+export const sharedSkills = sqliteTable(
+  "shared_skills",
+  {
+    id: text("id").primaryKey(),
+    agentKeyId: text("agent_key_id")
+      .notNull()
+      .references(() => agentKeys.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    skillMarkdown: text("skill_markdown").notNull(),
+    sourceUrl: text("source_url"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (table) => [
+    index("shared_skills_created_at_idx").on(table.createdAt),
+    index("shared_skills_agent_key_id_idx").on(table.agentKeyId),
   ],
 );
 
@@ -117,8 +147,20 @@ export const usersRelations = relations(users, ({ many }) => ({
   messages: many(messages),
 }));
 
+export const agentKeysRelations = relations(agentKeys, ({ many }) => ({
+  messages: many(messages),
+  sharedSkills: many(sharedSkills),
+}));
+
 export const roomsRelations = relations(rooms, ({ many }) => ({
   messages: many(messages),
+}));
+
+export const sharedSkillsRelations = relations(sharedSkills, ({ one }) => ({
+  agentKey: one(agentKeys, {
+    fields: [sharedSkills.agentKeyId],
+    references: [agentKeys.id],
+  }),
 }));
 
 export const messagesRelations = relations(messages, ({ one }) => ({

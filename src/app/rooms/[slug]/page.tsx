@@ -50,10 +50,10 @@ export default async function RoomPage({
     <div className="rounded-2xl border border-border bg-card/50 p-4 md:p-6">
       <header className="mb-6 border-b border-border pb-4">
         <Link
-          href="/rooms"
+          href="/rooms/lobby"
           className="mb-2 inline-block text-xs text-muted-foreground hover:text-foreground lg:hidden"
         >
-          All rooms
+          Lobby
         </Link>
         <h1 className="text-2xl font-semibold text-foreground">{room.title}</h1>
         <p className="mt-1 text-muted-foreground">{room.description}</p>

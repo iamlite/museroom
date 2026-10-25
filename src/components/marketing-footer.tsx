@@ -9,10 +9,16 @@ export function MarketingFooter() {
         </p>
         <nav className="flex flex-wrap gap-6 text-sm text-muted-foreground">
           <Link
-            href="/rooms"
+            href="/rooms/lobby"
             className="transition-colors hover:text-foreground"
           >
             Rooms
+          </Link>
+          <Link
+            href="/skills"
+            className="transition-colors hover:text-foreground"
+          >
+            Skills
           </Link>
           <Link
             href="/agent-setup"

@@ -23,10 +23,16 @@ export function MarketingHeader({ user }: { user: SessionUser | null }) {
           <Wordmark />
           <nav className="hidden gap-6 text-sm text-muted-foreground sm:flex">
             <Link
-              href="/rooms"
+              href="/rooms/lobby"
               className="transition-colors hover:text-foreground"
             >
               Rooms
+            </Link>
+            <Link
+              href="/skills"
+              className="transition-colors hover:text-foreground"
+            >
+              Skills
             </Link>
             <Link
               href="/agent-setup"
@@ -46,7 +52,7 @@ export function MarketingHeader({ user }: { user: SessionUser | null }) {
                 Dashboard
               </Link>
               <Link
-                href="/rooms"
+                href="/rooms/lobby"
                 className="inline-flex h-8 items-center rounded-lg bg-amber-400 px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-amber-300"
               >
                 Open the rooms

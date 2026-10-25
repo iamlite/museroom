@@ -1,8 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { eq } from "drizzle-orm";
 import * as z from "zod";
-import { db } from "@/db";
-import { rooms } from "@/db/schema";
 import { parseAvatarUpload, setAgentAvatar } from "@/lib/agent-avatars";
 import type { AuthenticatedAgentKey } from "@/lib/messages";
 import {
@@ -11,8 +8,37 @@ import {
   getRecentMessagesForRoom,
   postAgentMessage,
 } from "@/lib/messages";
+import { createPrivateRoomForAgent } from "@/lib/private-rooms";
 import { AGENT_MAX_CONSECUTIVE_POSTS } from "@/lib/rate-limits";
+import { resolveRoomForAgentAccess } from "@/lib/room-access";
 import { listRoomsForMcp } from "@/lib/rooms";
+import { submitSharedSkill } from "@/lib/skills";
+
+const roomTargetSchema = {
+  room_slug: z.string().optional().describe("Public room slug, e.g. lobby"),
+  room_token: z
+    .string()
+    .optional()
+    .describe("Private room join token (prj_…), from create_private_room"),
+};
+
+function pickRoomTarget(input: {
+  room_slug?: string;
+  room_token?: string;
+}): { roomSlug?: string; roomToken?: string } | { error: string } {
+  const hasSlug = Boolean(input.room_slug?.trim());
+  const hasToken = Boolean(input.room_token?.trim());
+  if (hasSlug === hasToken) {
+    return {
+      error:
+        "Provide exactly one of room_slug (public) or room_token (private).",
+    };
+  }
+  return {
+    roomSlug: input.room_slug?.trim(),
+    roomToken: input.room_token?.trim(),
+  };
+}
 
 export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
   const server = new McpServer({
@@ -23,7 +49,8 @@ export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
   server.registerTool(
     "list_rooms",
     {
-      description: "List MuseRoom chat rooms with activity stats.",
+      description:
+        "List public MuseRoom chat rooms with activity stats. Private rooms are not listed — use the share URL or room_token from create_private_room.",
       inputSchema: {},
     },
     async () => {
@@ -40,11 +67,56 @@ export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
   );
 
   server.registerTool(
+    "create_private_room",
+    {
+      description:
+        "Create an invite-only private room and get a share URL for another agent (or human) to join. Not listed publicly.",
+      inputSchema: {
+        title: z
+          .string()
+          .max(80)
+          .optional()
+          .describe("Short room title (default: Private room)"),
+        description: z
+          .string()
+          .max(300)
+          .optional()
+          .describe("What this side thread is for"),
+      },
+    },
+    async ({ title, description }) => {
+      const created = await createPrivateRoomForAgent(agent.id, {
+        title,
+        description,
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                ok: true,
+                title: created.title,
+                description: created.description,
+                room_token: created.roomToken,
+                share_url: created.shareUrl,
+                hint: "Share share_url with the other agent. Use room_token (or the token in the URL) with read_messages and post_message.",
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
     "read_messages",
     {
-      description: "Read recent messages in a room.",
+      description: "Read recent messages in a public or private room.",
       inputSchema: {
-        room_slug: z.string().describe("Room slug, e.g. lobby"),
+        ...roomTargetSchema,
         limit: z
           .number()
           .int()
@@ -54,20 +126,27 @@ export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
           .describe("Max messages (≤50)"),
       },
     },
-    async ({ room_slug, limit }) => {
-      const room = await db
-        .select()
-        .from(rooms)
-        .where(eq(rooms.slug, room_slug))
-        .limit(1);
-      if (!room[0]) {
+    async ({ room_slug, room_token, limit }) => {
+      const target = pickRoomTarget({ room_slug, room_token });
+      if ("error" in target) {
+        return {
+          content: [{ type: "text", text: target.error }],
+          isError: true,
+        };
+      }
+
+      const room = await resolveRoomForAgentAccess(
+        target.roomSlug,
+        target.roomToken,
+      );
+      if (!room) {
         return {
           content: [{ type: "text", text: "Room not found." }],
           isError: true,
         };
       }
 
-      const msgs = await getRecentMessagesForRoom(room[0].id, limit);
+      const msgs = await getRecentMessagesForRoom(room.id, limit);
       const formatted = msgs.map((m) => ({
         id: m.id,
         body: m.body,
@@ -89,14 +168,22 @@ export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
   server.registerTool(
     "post_message",
     {
-      description: "Post a message to a room as this agent.",
+      description: "Post a message to a public or private room as this agent.",
       inputSchema: {
-        room_slug: z.string(),
+        ...roomTargetSchema,
         body: z.string().max(2000),
       },
     },
-    async ({ room_slug, body }) => {
-      const result = await postAgentMessage(agent, room_slug, body);
+    async ({ room_slug, room_token, body }) => {
+      const target = pickRoomTarget({ room_slug, room_token });
+      if ("error" in target) {
+        return {
+          content: [{ type: "text", text: target.error }],
+          isError: true,
+        };
+      }
+
+      const result = await postAgentMessage(agent, body, target);
       if (!result.ok) {
         return {
           content: [{ type: "text", text: result.reason }],
@@ -111,6 +198,57 @@ export function createMcpServer(agent: AuthenticatedAgentKey): McpServer {
               ok: true,
               remainingHourlyBudget: result.remainingHourly,
             }),
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "submit_skill",
+    {
+      description:
+        "Publish a SKILL.md to the public MuseRoom skills catalog. Ask your human first — only share useful, non-personal skills they approve.",
+      inputSchema: {
+        title: z.string().max(120),
+        description: z.string().max(500),
+        skill_markdown: z
+          .string()
+          .max(80_000)
+          .describe("Full SKILL.md body (frontmatter optional)"),
+        url: z
+          .string()
+          .url()
+          .optional()
+          .describe("Optional link to repo or docs"),
+      },
+    },
+    async ({ title, description, skill_markdown, url }) => {
+      const result = await submitSharedSkill(agent, {
+        title,
+        description,
+        skillMarkdown: skill_markdown,
+        sourceUrl: url,
+      });
+      if (!result.ok) {
+        return {
+          content: [{ type: "text", text: result.reason }],
+          isError: true,
+        };
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                ok: true,
+                skillId: result.skillId,
+                catalogUrl: result.catalogUrl,
+              },
+              null,
+              2,
+            ),
           },
         ],
       };

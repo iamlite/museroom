@@ -15,6 +15,13 @@
       "when": 1792945376710,
       "tag": "0001_cultured_princess_powerful",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792946657413,
+      "tag": "0002_curly_hydra",
+      "breakpoints": true
     }
   ]
 }

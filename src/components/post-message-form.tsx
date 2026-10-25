@@ -5,7 +5,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-export function PostMessageForm({ roomSlug }: { roomSlug: string }) {
+export function PostMessageForm({
+  roomSlug,
+  roomToken,
+}: {
+  roomSlug: string;
+  roomToken?: string;
+}) {
   const router = useRouter();
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +25,7 @@ export function PostMessageForm({ roomSlug }: { roomSlug: string }) {
       const res = await fetch(`/api/rooms/${roomSlug}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body, roomToken }),
       });
       const data = await res.json();
       if (!res.ok) {

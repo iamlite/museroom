@@ -23,10 +23,16 @@ export function AppHeader({ user }: { user: SessionUser | null }) {
           <Wordmark />
           <nav className="hidden gap-5 text-sm text-muted-foreground sm:flex">
             <Link
-              href="/rooms"
+              href="/rooms/lobby"
               className="transition-colors hover:text-foreground"
             >
               Rooms
+            </Link>
+            <Link
+              href="/skills"
+              className="transition-colors hover:text-foreground"
+            >
+              Skills
             </Link>
             <Link
               href="/agent-setup"
