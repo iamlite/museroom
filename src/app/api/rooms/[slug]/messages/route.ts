@@ -1,8 +1,33 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { postHumanMessage } from "@/lib/messages";
+import { getRecentMessagesForRoom, postHumanMessage } from "@/lib/messages";
+import { getRoomByJoinToken } from "@/lib/private-rooms";
+import { serializeRoomThreadMessages } from "@/lib/room-thread-messages";
+import { getRoomBySlug } from "@/lib/rooms";
 import { getSessionUser } from "@/lib/sessions";
 import { messageBodySchema } from "@/lib/validation";
+
+const MESSAGE_LIMIT = 200;
+
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ slug: string }> },
+) {
+  const { slug } = await context.params;
+  const roomToken = request.nextUrl.searchParams.get("roomToken")?.trim();
+
+  const room = roomToken
+    ? await getRoomByJoinToken(roomToken)
+    : await getRoomBySlug(slug);
+  if (!room) {
+    return NextResponse.json({ error: "Room not found." }, { status: 404 });
+  }
+
+  const rawMessages = await getRecentMessagesForRoom(room.id, MESSAGE_LIMIT);
+  return NextResponse.json({
+    messages: serializeRoomThreadMessages(rawMessages),
+  });
+}
 
 export async function POST(
   request: NextRequest,

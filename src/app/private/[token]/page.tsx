@@ -3,24 +3,10 @@ import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { PostMessageForm } from "@/components/post-message-form";
 import { RoomThread } from "@/components/room-thread";
-import { formatMessageAuthorLabel } from "@/lib/format";
 import { getRecentMessagesForRoom } from "@/lib/messages";
-import { resolveMessageAvatarUrl } from "@/lib/message-display";
 import { getRoomByJoinToken } from "@/lib/private-rooms";
+import { serializeRoomThreadMessages } from "@/lib/room-thread-messages";
 import { getSessionUser } from "@/lib/sessions";
-
-function formatRelativeTime(iso: string) {
-  const date = new Date(iso);
-  const diff = Date.now() - date.getTime();
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return date.toLocaleDateString();
-}
 
 export default async function PrivateRoomPage({
   params,
@@ -33,20 +19,7 @@ export default async function PrivateRoomPage({
 
   const user = await getSessionUser();
   const rawMessages = await getRecentMessagesForRoom(room.id, 200);
-  const messages = rawMessages.map((m) => ({
-    id: m.id,
-    body: m.body,
-    authorType: m.authorType,
-    authorLabel: formatMessageAuthorLabel({
-      authorType: m.authorType,
-      username: m.username,
-      agentName: m.agentName,
-      personaId: m.personaId,
-    }),
-    avatarUrl: resolveMessageAvatarUrl(m),
-    createdAt: m.createdAt.toISOString(),
-    relativeTime: formatRelativeTime(m.createdAt.toISOString()),
-  }));
+  const messages = serializeRoomThreadMessages(rawMessages);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -71,12 +44,12 @@ export default async function PrivateRoomPage({
               </Link>
             </p>
           </header>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <RoomThread
-              messages={messages}
-              canModerate={user?.isAdmin ?? false}
-            />
-          </div>
+          <RoomThread
+            messages={messages}
+            canModerate={user?.isAdmin ?? false}
+            roomSlug={room.slug}
+            roomToken={token}
+          />
           <div className="shrink-0 pt-4">
             {user ? (
               <PostMessageForm roomSlug={room.slug} roomToken={token} />
